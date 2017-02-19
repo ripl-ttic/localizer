@@ -719,7 +719,8 @@ void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__(
 
 //get params from server
 
-void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p param, lcm_t *lcm, BotParam * b_param )
+void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p param, 
+                               lcm_t *lcm, BotParam * b_param, state_t *self )
 {
     BotFrames *frames = bot_frames_get_global (lcm, b_param);
 
@@ -749,26 +750,27 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
 
 
     // Now for the rear laser
-    coord_frame = NULL;
-    coord_frame = bot_param_get_planar_lidar_coord_frame (b_param, "SKIRT_REAR");
-
-    if (!coord_frame)
-        fprintf (stderr, "\tError determining rear laser coordinate frame\n");
-
-    BotTrans rear_laser_to_body;
-    if (!bot_frames_get_trans (frames, coord_frame, "body", &rear_laser_to_body))
-        fprintf (stderr, "\tError determining LIDAR coordinate frame\n");
-    else
-        fprintf(stderr,"\tRear Laser Pos : (%f,%f,%f)\n",
-                rear_laser_to_body.trans_vec[0], rear_laser_to_body.trans_vec[1], rear_laser_to_body.trans_vec[2]);
-
-    param->rear_laser_offset = rear_laser_to_body.trans_vec[0];
-    param->rear_laser_side_offset = rear_laser_to_body.trans_vec[1];
-
-    double rear_rpy[3];
-    bot_quat_to_roll_pitch_yaw (rear_laser_to_body.rot_quat, rear_rpy);
-    param->rear_laser_angle_offset = rear_rpy[2];
-   
+    if (self->use_rear_laser) {
+        coord_frame = NULL;
+        coord_frame = bot_param_get_planar_lidar_coord_frame (b_param, "SKIRT_REAR");
+        
+        if (!coord_frame)
+            fprintf (stderr, "\tError determining rear laser coordinate frame\n");
+        
+        BotTrans rear_laser_to_body;
+        if (!bot_frames_get_trans (frames, coord_frame, "body", &rear_laser_to_body))
+            fprintf (stderr, "\tError determining LIDAR coordinate frame\n");
+        else
+            fprintf(stderr,"\tRear Laser Pos : (%f,%f,%f)\n",
+                    rear_laser_to_body.trans_vec[0], rear_laser_to_body.trans_vec[1], rear_laser_to_body.trans_vec[2]);
+        
+        param->rear_laser_offset = rear_laser_to_body.trans_vec[0];
+        param->rear_laser_side_offset = rear_laser_to_body.trans_vec[1];
+        
+        double rear_rpy[3];
+        bot_quat_to_roll_pitch_yaw (rear_laser_to_body.rot_quat, rear_rpy);
+        param->rear_laser_angle_offset = rear_rpy[2];
+    }
 
     /* 
      * double position[3];
@@ -1013,7 +1015,7 @@ static void usage(char * funcName)
            "--verbose           -v    verbose  \n"
            "--mode              -m    mode (live/playback) default - live\n"
            "--reverse,          -r    use rear laser\n"
-           "--draw,          -d    draw laser and pose\n"
+           "--draw,             -d    draw laser and pose\n"
            "--solve_pose        -s    solve for and publish pose\n", funcName);
     exit(1);
 
@@ -1097,7 +1099,7 @@ int main(int argc, char **argv)
     /* Initialize all the relevant parameters */
     //read_parameters(argc, argv, &param);
 
-    read_parameters_from_conf(argc, argv, &(self->param), self->lcm, b_param);
+    read_parameters_from_conf(argc, argv, &(self->param), self->lcm, b_param, self);
   
   
     self->global_carmen_map = (carmen_map_p) calloc(1, sizeof(carmen_map_t));
