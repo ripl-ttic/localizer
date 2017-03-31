@@ -32,7 +32,7 @@
 #include "localize3d_motion.h"
 #include <hr_common/carmen3d_global.h>
 
-#define HOLONOMIC
+//#define HOLONOMIC
 #define HOLONOMIC_XY_DEV 0.02//0.0075 //TODO: shouldn't be hardcoded
 #define HOLONOMIC_THETA_DEV 0.02//0.0025
 
@@ -436,7 +436,6 @@ void carmen3d_localize_incorporate_odometry(carmen3d_localize_particle_filter_p 
         return;
     }
 #ifdef HOLONOMIC
-
     carmen_point_t delta = carmen3d_body2D_difference(&odometry_position,&filter->last_odometry_position);
   
     filter->distance_travelled += sqrt(delta.x * delta.x + delta.y * delta.y);
@@ -478,12 +477,12 @@ void carmen3d_localize_incorporate_odometry(carmen3d_localize_particle_filter_p 
     for(i = 0; i < filter->param->num_particles; i++) {
         downrange =
             carmen3d_localize_sample_noisy_downrange(delta_t, delta_theta,
-                                                   filter->param->motion_model);
+                                                     filter->param->motion_model);
         crossrange =
             carmen3d_localize_sample_noisy_crossrange(delta_t, delta_theta,
-                                                    filter->param->motion_model);
+                                                      filter->param->motion_model);
         turn = carmen3d_localize_sample_noisy_turn(delta_t, delta_theta,
-                                                 filter->param->motion_model);
+                                                   filter->param->motion_model);
 
         if(backwards) {
             filter->particles[i].x -= downrange *

@@ -117,7 +117,7 @@ double carmen3d_localize_sample_noisy_crossrange(double delta_t,
 }
 
 double carmen3d_localize_sample_noisy_turn(double delta_t, double delta_theta,
-					 carmen3d_localize_motion_model_t *model)
+                                           carmen3d_localize_motion_model_t *model)
 {
   double turn_mean, turn_std_dev;
   double sample;
