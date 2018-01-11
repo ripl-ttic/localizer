@@ -40,6 +40,8 @@
 #ifndef CARMEN3D_LOCALIZECORE_H
 #define CARMEN3D_LOCALIZECORE_H
 
+#define OLD_MOTION_MODEL
+
 #ifdef __cplusplus
 extern "C" {
 #endif
