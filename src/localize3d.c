@@ -84,6 +84,7 @@ typedef struct _state_t{
     gboolean playback;
     gboolean verbose;
     gboolean solve_for_pose;
+    gboolean flip_front_laser;
 
     int draw_info;
     int new_map;
@@ -607,6 +608,11 @@ void on_planar_lidar(const lcm_recv_buf_t *rbuf __attribute__((unused)),
     if (static_msg)
         bot_core_planar_lidar_t_destroy (static_msg);
     static_msg = bot_core_planar_lidar_t_copy (msg);
+
+    if (self->flip_front_laser && !strcmp(channel, "SKIRT_FRONT")) {
+        for (int i=0; i<static_msg->nranges; i++)
+            static_msg->ranges[i] = msg->ranges[msg->nranges-1-i];
+    }
 
     self->last_laser_time = static_msg->utime;
 
