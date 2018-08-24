@@ -81,15 +81,15 @@ typedef struct _state_t{
     double last_pose[3];
     int64_t last_pose_utime;
 
-    gboolean playback; 
-    gboolean verbose; 
+    gboolean playback;
+    gboolean verbose;
     gboolean solve_for_pose;
-   
+
     int draw_info;
     int new_map;
-    int no_draw; 
+    int no_draw;
 
-    int64_t last_laser_time; 
+    int64_t last_laser_time;
     int64_t last_global_to_local_utime;
 
     GMainLoop *mainloop;
@@ -99,13 +99,13 @@ typedef struct _state_t{
 gboolean heartbeat_cb (gpointer data)
 {
     //set this up to publish localization lost message - if sensor fails
-    
+
     state_t *s = (state_t *)data;
-  
-    //do the periodic stuff 
+
+    //do the periodic stuff
 
     if(!s->playback){
-        //if last laser wasnt hear over 30s before 
+        //if last laser wasnt hear over 30s before
         if(fabs(s->last_laser_time - bot_timestamp_now()) > 500000){
             if(s->verbose){
                 fprintf(stderr, "Laser timeout - error\n");
@@ -148,13 +148,13 @@ static void publish_localizer_pose(carmen_point_p particleLoc, double timestamp,
 
     bot_core_rigid_transform_t global_to_local;
     global_to_local.utime = slam_pose.utime;
-    
+
     BotTrans bt_global_to_local;
 
     // If we are solving for the pose, publish the SLAM pose and the GLOBAL_TO_LOCAL as identity
     if (self->solve_for_pose == TRUE) {
         bot_core_pose_t_publish(self->lcm, "POSE", &slam_pose);
-        
+
         // Set the global-to-local transformation to the identity transformation
         bot_trans_set_identity( &bt_global_to_local);
     }
@@ -165,7 +165,7 @@ static void publish_localizer_pose(carmen_point_p particleLoc, double timestamp,
         BotTrans bt_body_to_global;
         BotTrans bt_global_to_body;
         BotTrans bt_body_to_local;
- 
+
         bot_trans_set_from_quat_trans (&bt_body_to_global, slam_pose.orientation, slam_pose.pos);
         bot_trans_set_from_quat_trans (&bt_body_to_local, self->last_bot_pose->orientation, self->last_bot_pose->pos);
         bot_trans_invert (&bt_body_to_global);
@@ -226,13 +226,13 @@ int projectRangesToPoints(float * ranges, int numPoints, double thetaStart, doub
     return count;
 }
 
-//drawing front robot laser message 
-static void draw_laser_lcmgl(carmen_point_p meanLoc, carmen_point_p maxParticleLoc, carmen_robot_laser_message *flaser, 
+//drawing front robot laser message
+static void draw_laser_lcmgl(carmen_point_p meanLoc, carmen_point_p maxParticleLoc, carmen_robot_laser_message *flaser,
 			     double fl_offset, state_t *s)
 {
     if(s->no_draw)
-        return; 
-    
+        return;
+
     point2d_t * points = (point2d_t *) calloc(flaser->num_readings, sizeof(point2d_t));
     int numValidPoints = projectRangesToPoints(flaser->range, flaser->num_readings, flaser->config.start_angle,
                                                flaser->config.fov / flaser->num_readings, points, flaser->config.maximum_range, 3);
@@ -245,7 +245,7 @@ static void draw_laser_lcmgl(carmen_point_p meanLoc, carmen_point_p maxParticleL
 
     BotTrans mean_tranny;
     memset(&mean_tranny, 0, sizeof(mean_tranny));
-    //change the value to be the point of the front laser 
+    //change the value to be the point of the front laser
 
     mean_tranny.trans_vec[0] = summary_mean_global.x + fl_offset*cos(summary_mean_global.theta);
     mean_tranny.trans_vec[1] = summary_mean_global.y + fl_offset*sin(summary_mean_global.theta);
@@ -274,8 +274,8 @@ static void draw_laser_lcmgl(carmen_point_p meanLoc, carmen_point_p maxParticleL
         bot_lcmgl_color3f(s->lcmgl_laser, 1, 0, 0);
         bot_trans_apply_vec(&mean_tranny, p, rp);
 
-        double gl[3]; 
-        bot_vector_affine_transform_3x4_3d (global_to_local, rp , gl);  
+        double gl[3];
+        bot_vector_affine_transform_3x4_3d (global_to_local, rp , gl);
         bot_lcmgl_vertex3f(s->lcmgl_laser, gl[0], gl[1], gl[2]);
     }
     bot_lcmgl_end(s->lcmgl_laser);
@@ -292,7 +292,7 @@ static void draw_particles_lcmgl(carmen3d_localize_particle_filter_p filter, car
     bot_lcmgl_color3f(s->lcmgl_particles, 0, 1, 1);
     bot_lcmgl_point_size(s->lcmgl_particles, 2);
     bot_lcmgl_begin(s->lcmgl_particles, GL_POINTS);
-    
+
     double global_to_local[12];
     if (!bot_frames_get_trans_mat_3x4_with_utime (s->frames, "global",
                                                   "local", s->last_laser_time,
@@ -304,12 +304,12 @@ static void draw_particles_lcmgl(carmen3d_localize_particle_filter_p filter, car
     for (int i = 0; i < filter->param->num_particles; i++) {
         carmen_point_t particle_map = { filter->particles[i].x, filter->particles[i].y, filter->particles[i].theta };
         carmen_point_t particle_global = carmen3d_map_map_to_global_coordinates(particle_map, s->global_carmen3d_map);
-        
+
         double particle_gl[] = {particle_global.x, particle_global.y, 0};
         double particle_lc[3] = {0};
 
-        bot_vector_affine_transform_3x4_3d (global_to_local, particle_gl , particle_lc);  
-        
+        bot_vector_affine_transform_3x4_3d (global_to_local, particle_gl , particle_lc);
+
         if(s->draw_info){
             double heading_length = 0.2;
             double particle_gl_1[3] = {particle_global.x + heading_length * cos(particle_global.theta),
@@ -319,12 +319,12 @@ static void draw_particles_lcmgl(carmen3d_localize_particle_filter_p filter, car
 
 	    bot_lcmgl_vertex3f(s->lcmgl, particle_lc[0], particle_lc[1], 0);
 
-	    //these need to be converted to local frame 
+	    //these need to be converted to local frame
 
 	    bot_lcmgl_vertex3f(s->lcmgl_particles, particle_lc[0], particle_lc[1], 0);
 	}
     }
-    
+
     bot_lcmgl_end(s->lcmgl_particles);
     bot_lcmgl_switch_buffer(s->lcmgl_particles);
 
@@ -334,7 +334,7 @@ static void draw_particles_lcmgl(carmen3d_localize_particle_filter_p filter, car
     bot_lcmgl_color3f(s->lcmgl, 0, 1, 0);
     bot_lcmgl_point_size(s->lcmgl, 15);
     bot_lcmgl_begin(s->lcmgl, GL_POINTS);
-    
+
     double mean_gl[3] = {summary_mean_global.x, summary_mean_global.y, 0};
     double mean_lc[3] = {0};
     bot_vector_affine_transform_3x4_3d (global_to_local, mean_gl, mean_lc);
@@ -356,10 +356,10 @@ static void draw_particles_lcmgl(carmen3d_localize_particle_filter_p filter, car
     bot_vector_affine_transform_3x4_3d (global_to_local, mean_gl_1, mean_lc);
 
     bot_lcmgl_vertex3f(s->lcmgl, mean_lc[0], mean_lc[1], 0);
-    
+
     //bot_lcmgl_vertex3f(s->lcmgl, summary_mean_global.x + headingLength * cos(summary_mean_global.theta),
     //                 summary_mean_global.y + headingLength * sin(summary_mean_global.theta), 0);
-    
+
 
     bot_lcmgl_end(s->lcmgl);
 
@@ -426,15 +426,15 @@ void carmen_localize_initialize_handler(carmen_localize_initialize_message *init
     }*/
 
 void robot_frontlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
-{ 
-    //logic to stop processing if the robot stops - prevents divergence of the filter 
+{
+    //logic to stop processing if the robot stops - prevents divergence of the filter
     static double last_b_pose[2] = {.0,.0};
     double dist_travelled;
 
     dist_travelled = hypot(flaser->robot_pose.x - last_b_pose[0],flaser->robot_pose.y - last_b_pose[1]);
     last_b_pose[0] = flaser->robot_pose.x;
     last_b_pose[1] = flaser->robot_pose.y;
-  
+
     /*if(dist_travelled==0){
       fprintf(stdout,"-");
       return;
@@ -459,11 +459,11 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
         initialize_msg.mean = &mean_map;
         initialize_msg.std = &std;
 
-  
-        //this has a slight issue - uses the flaser - which is not initiaized 
+
+        //this has a slight issue - uses the flaser - which is not initiaized
         carmen_localize_initialize_handler(&initialize_msg, s);
         fprintf(stderr,"Initializing Filter\n");
-        return;    
+        return;
     }
 
     static carmen_point_t prev_robot_position =  {.0,.0,.0};
@@ -473,10 +473,10 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
     robot_position.theta = flaser->robot_pose.theta;
     carmen_point_t delta = carmen3d_body2D_difference(&robot_position,&prev_robot_position);
 
-    prev_robot_position = robot_position; 
-  
+    prev_robot_position = robot_position;
+
     int stationary = 0;
-    if(sqrt(delta.x * delta.x + delta.y * delta.y) == 0) 
+    if(sqrt(delta.x * delta.x + delta.y * delta.y) == 0)
         stationary = 1;
 
     if (!stationary || s->new_map) {
@@ -501,7 +501,7 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
                 maxParticle.theta = s->filter->particles->theta;
             }
         }
-      
+
         if (s->summary.converged) {
             publish_slam_pose(&(s->summary.mean),flaser->timestamp, s);
             publish_localizer_pose(&(s->summary.mean),flaser->timestamp, s);
@@ -514,14 +514,14 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
 
 void robot_rearlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
 {
-    //the rear offset is reflected in the robot laser start angle 
-    //logic to stop processing if the robot stops - prevents divergence of the filter 
+    //the rear offset is reflected in the robot laser start angle
+    //logic to stop processing if the robot stops - prevents divergence of the filter
     static double last_b_pose[2] = {.0,.0};
     double dist_travelled;
     dist_travelled = hypot(flaser->robot_pose.x - last_b_pose[0],flaser->robot_pose.y - last_b_pose[1]);
     last_b_pose[0] = flaser->robot_pose.x;
     last_b_pose[1] = flaser->robot_pose.y;
-    //this is bad 
+    //this is bad
     /*if(dist_travelled==0){
       fprintf(stdout,"-");
       return;
@@ -545,11 +545,11 @@ void robot_rearlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
         initialize_msg.mean = &mean_map;
         initialize_msg.std = &std;
 
-  
-        //this has a slight issue - uses the flaser - which is not initiaized 
+
+        //this has a slight issue - uses the flaser - which is not initiaized
         carmen_localize_initialize_handler(&initialize_msg, s);
         fprintf(stderr,"Initializing Filter\n");
-        return;    
+        return;
     }
 
     carmen3d_localize_run(s->filter, &(s->map), flaser, s->filter->param->rear_laser_offset, 0);
@@ -579,12 +579,12 @@ void robot_rearlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
     }
 }
 
-static void on_pose(const lcm_recv_buf_t *rbuf __attribute__((unused)), 
+static void on_pose(const lcm_recv_buf_t *rbuf __attribute__((unused)),
                     const char * channel __attribute__((unused)),
-                    const bot_core_pose_t * msg, 
+                    const bot_core_pose_t * msg,
                     void * user  __attribute__((unused))) {
 
-    state_t *s = (state_t *) user; 
+    state_t *s = (state_t *) user;
 
     if(s->last_bot_pose != NULL){
         bot_core_pose_t_destroy(s->last_bot_pose);
@@ -595,20 +595,20 @@ static void on_pose(const lcm_recv_buf_t *rbuf __attribute__((unused)),
     //    bot_core_pose_t_publish (s->lcm, "POSE", msg);
 }
 
-void on_planar_lidar(const lcm_recv_buf_t *rbuf __attribute__((unused)), 
-                     const char * channel __attribute__((unused)), 
+void on_planar_lidar(const lcm_recv_buf_t *rbuf __attribute__((unused)),
+                     const char * channel __attribute__((unused)),
                      const bot_core_planar_lidar_t * msg,
                      void * user  __attribute__((unused)))
 {
-    
-    state_t *self = (state_t *) user; 
+
+    state_t *self = (state_t *) user;
 
     static bot_core_planar_lidar_t *static_msg = NULL;
     if (static_msg)
         bot_core_planar_lidar_t_destroy (static_msg);
     static_msg = bot_core_planar_lidar_t_copy (msg);
 
-    self->last_laser_time = static_msg->utime; 
+    self->last_laser_time = static_msg->utime;
 
     //set invalid regions to maxrange
     for (int i=0; i<static_msg->nranges;i++){
@@ -626,7 +626,7 @@ void on_planar_lidar(const lcm_recv_buf_t *rbuf __attribute__((unused)),
         fprintf (stdout, "on_planar_lidar: No pose\n");
         return;
     }
-   
+
     carmen_robot_laser_message *carmen_msg = &(self->front_laser);
     memset(carmen_msg, 0, sizeof(carmen_robot_laser_message));
     carmen_msg->laser_pose.x = self->last_bot_pose->pos[0];
@@ -665,12 +665,12 @@ void on_planar_lidar(const lcm_recv_buf_t *rbuf __attribute__((unused)),
         robot_rearlaser_handler(carmen_msg, self);
 }
 
-void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), 
-                                       const char *channel __attribute__((unused)), 
+void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)),
+                                       const char *channel __attribute__((unused)),
                                        const erlcm_localize_reinitialize_cmd_t *msg,
                                        void *user)
 {
-    state_t *s = (state_t *) user; 
+    state_t *s = (state_t *) user;
 
     if(s->global_map_msg ==NULL){
         return;
@@ -698,7 +698,7 @@ void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__(
 
     if (!bot_frames_get_trans (s->frames, "local", "global", &local_to_global))
         fprintf (stderr, "lcm_localize_reinitialize_handler: Error getting transformation from local to global frame\n");
-    
+
     bot_quat_mult (quat_global, local_to_global.rot_quat, quat_local);
     bot_quat_to_roll_pitch_yaw (quat_global, rpy_global);
     bot_frames_transform_vec (s->frames, "local", "global", mean_local, mean_global);
@@ -719,7 +719,7 @@ void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__(
 
 //get params from server
 
-void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p param, 
+void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p param,
                                lcm_t *lcm, BotParam * b_param, state_t *self )
 {
     BotFrames *frames = bot_frames_get_global (lcm, b_param);
@@ -727,7 +727,7 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
     double integrate_angle_deg;
     integrate_angle_deg = 1.0;
 
-    
+
     // Find the position of the forward-facing LIDAR
     char *coord_frame;
     coord_frame = bot_param_get_planar_lidar_coord_frame (b_param, "SKIRT_FRONT");
@@ -753,57 +753,57 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
     if (self->use_rear_laser) {
         coord_frame = NULL;
         coord_frame = bot_param_get_planar_lidar_coord_frame (b_param, "SKIRT_REAR");
-        
+
         if (!coord_frame)
             fprintf (stderr, "\tError determining rear laser coordinate frame\n");
-        
+
         BotTrans rear_laser_to_body;
         if (!bot_frames_get_trans (frames, coord_frame, "body", &rear_laser_to_body))
             fprintf (stderr, "\tError determining LIDAR coordinate frame\n");
         else
             fprintf(stderr,"\tRear Laser Pos : (%f,%f,%f)\n",
                     rear_laser_to_body.trans_vec[0], rear_laser_to_body.trans_vec[1], rear_laser_to_body.trans_vec[2]);
-        
+
         param->rear_laser_offset = rear_laser_to_body.trans_vec[0];
         param->rear_laser_side_offset = rear_laser_to_body.trans_vec[1];
-        
+
         double rear_rpy[3];
         bot_quat_to_roll_pitch_yaw (rear_laser_to_body.rot_quat, rear_rpy);
         param->rear_laser_angle_offset = rear_rpy[2];
     }
 
-    /* 
+    /*
      * double position[3];
      * char key[2048];
-     * 
+     *
      * sprintf(key, "%s.%s.%s.position", "calibration", "planar_lidars", "SKIRT_FRONT");
-     * 
+     *
      * if(3 != bot_param_get_double_array(b_param, key, position, 3)){
      *     fprintf(stderr,"\tError Reading Params\n");
      * }
      * else{
      *     fprintf(stderr,"\tFront Laser Pos : (%f,%f,%f)\n",position[0], position[1], position[2]);
      * }
-     * 
-     * 
+     *
+     *
      * param->front_laser_offset = position[0]; //bot_param_get_double_or_fail(b_param, "robot.frontlaser_offset");
-     * param->front_laser_side_offset =  position[1]; 
-     * 
+     * param->front_laser_side_offset =  position[1];
+     *
      * fprintf(stderr, "%f\n", param->front_laser_offset);
-     * 
+     *
      * double rpy[3];
-     * 
+     *
      * sprintf(key, "%s.%s.%s.rpy", "calibration", "planar_lidars", "SKIRT_FRONT");
-     * 
-     * 
+     *
+     *
      * if(3 != bot_param_get_double_array(b_param, key, rpy, 3)){
      *     fprintf(stderr,"\tError Reading Params\n");
      * }else{
      *     fprintf(stderr,"\tFront Laser RPY : (%f,%f,%f)\n",rpy[0], rpy[1], rpy[2]);
      * }
-     * 
+     *
      * param->front_laser_angle_offset = bot_to_radians(rpy[2]);//bot_param_get_double_or_fail(b_param,"robot.frontlaser_angular_offset");
-     * 
+     *
      * sprintf(key, "%s.%s.%s.position", "calibration", "planar_lidars", "SKIRT_REAR");
      * if(3 != bot_param_get_double_array(b_param, key, position, 3)){
      *     fprintf(stderr,"\tError Reading Params\n");
@@ -811,22 +811,22 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
      * else{
      *     fprintf(stderr,"\tRear Laser Pos : (%f,%f,%f)\n",position[0], position[1], position[2]);
      * }
-     * 
+     *
      * param->rear_laser_offset = position[0]; //bot_param_get_double_or_fail(b_param, "robot.rearlaser_offset");
-     * 
+     *
      * param->rear_laser_side_offset = position[1]; //bot_param_get_double_or_fail(b_param,"robot.rearlaser_side_offset");
-     * 
+     *
      * sprintf(key, "%s.%s.%s.rpy", "calibration", "planar_lidars", "SKIRT_REAR");
-     * 
+     *
      * if(3 != bot_param_get_double_array(b_param, key, rpy, 3)){
      *     fprintf(stderr,"\tError Reading Params\n");
      * }else{
      *     fprintf(stderr,"\tRear Laser RPY : (%f,%f,%f)\n",rpy[0], rpy[1], rpy[2]);
      * }
-     * 
+     *
      * param->rear_laser_angle_offset = bot_to_radians(rpy[2]);
      */
-  
+
     param->use_rear_laser = bot_param_get_boolean_or_fail(b_param,"localizer.use_rear_laser");
     param->num_particles =bot_param_get_int_or_fail(b_param,"localizer.num_particles");
     param->max_range = bot_param_get_double_or_fail(b_param,"localizer.laser_max_range");
@@ -842,7 +842,7 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
     param->odom_a1 = bot_param_get_double_or_fail(b_param,"localizer.odom_a1");
     param->odom_a2 = bot_param_get_double_or_fail(b_param,"localizer.odom_a2");
     param->odom_a3 = bot_param_get_double_or_fail(b_param,"localizer.odom_a3");
-    param->odom_a4 = bot_param_get_double_or_fail(b_param,"localizer.odom_a4");  
+    param->odom_a4 = bot_param_get_double_or_fail(b_param,"localizer.odom_a4");
 #endif
 
     param->occupied_prob = bot_param_get_double_or_fail(b_param,"localizer.occupied_prob");
@@ -854,15 +854,15 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
     param->use_sensor = bot_param_get_boolean_or_fail(b_param,"localizer.use_sensor");
     param->tracking_beam_minlikelihood = bot_param_get_double_or_fail(b_param,"localizer.tracking_beam_minlikelihood");
     param->global_beam_minlikelihood = bot_param_get_double_or_fail(b_param,"localizer.global_beam_minlikelihood");
-  
+
     param->integrate_angle = carmen_degrees_to_radians(integrate_angle_deg);
-  
+
 }
 
 
 static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const erlcm_gridmap_t *msg, void *user)
 {
-    state_t *s = (state_t *) user; 
+    state_t *s = (state_t *) user;
 
     fprintf(stderr,"Gridmap Received\n");
     if (s->global_map_msg != NULL) {
@@ -879,7 +879,7 @@ static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, con
     }
 
     s->global_carmen_map = carmen3d_map_map3d_map_copy(s->global_carmen3d_map);
-  
+
     /* create a localize map */
     carmen_warn("Creating likelihood maps... ");
     carmen3d_to_localize_map(s->global_carmen_map, &(s->map), &(s->param));
@@ -895,10 +895,10 @@ static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, con
         initialize_msg.distribution = CARMEN_INITIALIZE_GAUSSIAN;
         initialize_msg.num_modes = 1;
         carmen_point_t mean = {s->last_pose[0],s->last_pose[1], s->last_pose[2] };
-        //this should have a floor attched - or use the current floor 
+        //this should have a floor attched - or use the current floor
         carmen_point_t mean_map = carmen3d_map_global_to_map_coordinates(mean, s->global_carmen3d_map);
 
-        //fprintf(stderr,"P: Last Pose : %f,%f,%f => Map Pose : %f,%f,%f\n", last_pose[0], 
+        //fprintf(stderr,"P: Last Pose : %f,%f,%f => Map Pose : %f,%f,%f\n", last_pose[0],
         //      last_pose[1], last_pose[2], mean_map.x, mean_map.y, mean_map.theta);
 
         carmen_point_t std = {
@@ -914,7 +914,7 @@ static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, con
         s->new_map = 1;
     }
     fprintf(stderr,"Done");
-    //this just coppies the message - doesnt do anything else with it - need to actually have the localize listen to and switch maps 
+    //this just coppies the message - doesnt do anything else with it - need to actually have the localize listen to and switch maps
     //on the fly
 }
 
@@ -927,7 +927,7 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
     msg.utime =  carmen_get_time()*1e6;
     msg.requesting_prog = "LOCALIZE";
 
-  
+
 
     erlcm_gridmap_t_subscription_t * sub = erlcm_gridmap_t_subscribe(s->lcm, "MAP_SERVER", gridmap_handler,
                                                                      s);
@@ -936,14 +936,14 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
                                                                        s);
     fprintf(stderr,"Waiting for a map");
     int sent_map_req = 0;
-  
+
     while (s->global_map_msg == NULL) {
         if(!sent_map_req){
             sent_map_req = 1;
             erlcm_map_request_msg_t_publish(s->lcm,"MAP_REQUEST_CHANNEL",&msg);
         }
         lcm_sleep(s->lcm, .25);
-        
+
         carmen_warn(".");
     }
     carmen_warn("Got a map\n");
@@ -952,7 +952,7 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
     carmen3d_map_uncompress_lcm_map(s->global_carmen3d_map, s->global_map_msg);
     s->global_carmen_map = carmen3d_map_map3d_map_copy(s->global_carmen3d_map);
 
-    // create a localize map 
+    // create a localize map
     carmen_warn("Creating likelihood maps... ");
     carmen3d_to_localize_map(s->global_carmen_map, map, param);
 
@@ -967,7 +967,7 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
         initialize_msg.distribution = CARMEN_INITIALIZE_GAUSSIAN;
         initialize_msg.num_modes = 1;
         carmen_point_t mean = {s->last_pose[0],s->last_pose[1], s->last_pose[2] };
-        //this should have a floor attched - or use the current floor 
+        //this should have a floor attched - or use the current floor
         carmen_point_t mean_map = carmen3d_map_global_to_map_coordinates(mean, s->global_carmen3d_map);
 
         carmen_point_t std = {
@@ -984,7 +984,7 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
     carmen_warn("done.\n");
 }
 
-void tagging_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)), 
+void tagging_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)),
                      const erlcm_tagged_node_t * msg,
                      void * user  __attribute__((unused)))
 {
@@ -1015,7 +1015,8 @@ static void usage(char * funcName)
            "--verbose           -v    verbose  \n"
            "--mode              -m    mode (live/playback) default - live\n"
            "--reverse,          -r    use rear laser\n"
-           "--draw,             -d    draw laser and pose\n"
+           "--no-draw           -n    don't draw laser and pose\n"
+           "--flip              -f    flip front laser (when upside down)\n"
            "--solve_pose        -s    solve for and publish pose\n", funcName);
     exit(1);
 
@@ -1028,13 +1029,14 @@ int main(int argc, char **argv)
 
     state_t *self = (state_t*) calloc(1, sizeof(state_t));
 
-    const char *optstring = "hdrm:vsn";
+    const char *optstring = "hfrm:vsn";
     struct option long_opts[] = { { "help", no_argument, 0, 'h' },
                                   { "verbose", no_argument, 0, 'v' },
                                   { "reverse", no_argument, 0, 'r' },
-                                  { "solve_pose", no_argument, 0, 's' }, 
-                                  { "no-draw", no_argument, 0, 'n' }, 
-                                  { "mode", required_argument , 0, 'm' }, 
+                                  { "solve_pose", no_argument, 0, 's' },
+                                  { "no-draw", no_argument, 0, 'n' },
+                                  { "flip", no_argument, 0, 'f' },
+                                  { "mode", required_argument , 0, 'm' },
                                   { 0, 0, 0, 0 } };
 
     self->solve_for_pose = FALSE;
@@ -1053,6 +1055,9 @@ int main(int argc, char **argv)
             break;
         case 's':
             self->solve_for_pose = TRUE;
+            break;
+        case 'f':
+            self->flip_front_laser = TRUE;
             break;
         case 'r':
             {
@@ -1100,8 +1105,8 @@ int main(int argc, char **argv)
     //read_parameters(argc, argv, &param);
 
     read_parameters_from_conf(argc, argv, &(self->param), self->lcm, b_param, self);
-  
-  
+
+
     self->global_carmen_map = (carmen_map_p) calloc(1, sizeof(carmen_map_t));
     carmen_test_alloc(self->global_carmen_map);
 
@@ -1147,12 +1152,12 @@ int main(int argc, char **argv)
     carmen_point_t std = { .1, .1, .1 };
     initialize_msg.mean = &mean_map;
     initialize_msg.std = &std;
-  
-    //this has a slight issue - uses the flaser - which is not initiaized 
+
+    //this has a slight issue - uses the flaser - which is not initiaized
     //carmen_localize_initialize_handler(&initialize_msg);
 
     // Two operating modes wrt pose:
-    //   1) Publish pose and LOCAL_TO_GLOBAL: Takes in LIDAR and POSE_DEADRECKON 
+    //   1) Publish pose and LOCAL_TO_GLOBAL: Takes in LIDAR and POSE_DEADRECKON
     //                                        and publishes POSE and LOCAL_TO_GLOBAL
     //   2) Publish LOCAL_TO_GLOBAL: Takes in LIDAR and POSE and publishes LOCAL_TO_GLOBAL
     if (self->solve_for_pose == TRUE)
@@ -1164,21 +1169,21 @@ int main(int argc, char **argv)
         bot_core_planar_lidar_t_subscribe(self->lcm, "SKIRT_REAR" , on_planar_lidar, self);
     else
         bot_core_planar_lidar_t_subscribe(self->lcm, "SKIRT_FRONT" , on_planar_lidar, self);
-        
-    self->mainloop = g_main_loop_new( NULL, FALSE );  
+
+    self->mainloop = g_main_loop_new( NULL, FALSE );
 
     bot_glib_mainloop_attach_lcm (self->lcm);
 
     /* heart beat*/
-    //called every 100 ms (more or less) 
+    //called every 100 ms (more or less)
     g_timeout_add(100, heartbeat_cb, self);
 
-    //adding proper exiting 
+    //adding proper exiting
     bot_signal_pipe_glib_quit_on_kill (self->mainloop);
 
     ///////////////////////////////////////////////
     g_main_loop_run(self->mainloop);
-  
+
     bot_glib_mainloop_detach_lcm(self->lcm);
 
     //    lcm_dispatch(lcm);
