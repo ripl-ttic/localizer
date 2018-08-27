@@ -54,22 +54,9 @@ pods_use_pkg_config_packages(hr-localizer
     bot2-frames
     bot2-param-client 
     lcmtypes_hr-lcmtypes 
-    laser-util 
+    laser-utils 
     map3d_interface
     carmen-utils
     hr-common)
 
-#target_link_libraries(hr-localizer
-#    carmen-utils)
-
-#add_executable(er-localizer-multi ${localize3d_multi_sources})
-
-#pods_use_pkg_config_packages(er-localizer-multi lcm bot2-core bot2-lcmgl-client  laser-util  bot2-param-client lcmtypes_er-lcmtypes map3d_interface er-common) 
-
-#target_link_libraries(er-localizer-multi
-#  -lglobal
-#  -lipc
-#)
-
 pods_install_executables(hr-localizer)
-#pods_install_executables(er-localizer-multi)
