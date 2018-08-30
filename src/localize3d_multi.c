@@ -58,12 +58,12 @@ static bot_lcmgl_t * lcmgl_laser = NULL;
 static Laser_projector *laser_proj;
 static double laser_max_range;
 
-erlcm_multi_gridmap_t_subscription_t * sub;
-erlcm_multi_gridmap_t_subscription_t * sub_1;
+ripl_multi_gridmap_t_subscription_t * sub;
+ripl_multi_gridmap_t_subscription_t * sub_1;
 
-static erlcm_multi_gridmap_t *mmap_msg = NULL;
+static ripl_multi_gridmap_t *mmap_msg = NULL;
 static carmen_map_p *global_carmen_mmap = NULL;
-static erlcm_map_p *global_carmen3d_mmap = NULL;
+static ripl_map_p *global_carmen3d_mmap = NULL;
 static carmen3d_localize_map_p *mmap = NULL;
 int converged_floor = -1;
 int no_of_floors = 0;
@@ -104,7 +104,7 @@ int getFloorIndex(int floor_no){
 
 static void publish_slam_pose(int map_id, carmen_point_p particleLoc, double timestamp)
 {
-  static erlcm_slam_pose_t slam_pose;
+  static ripl_slam_pose_t slam_pose;
   memset(&slam_pose, 0, sizeof(slam_pose));
 
   carmen_point_t summary_mean_global = carmen3d_map_map_to_global_coordinates(*particleLoc, global_carmen3d_mmap[map_id]);
@@ -114,7 +114,7 @@ static void publish_slam_pose(int map_id, carmen_point_p particleLoc, double tim
   double rpy[3] = { 0, 0, summary_mean_global.theta };
   bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
   slam_pose.utime = bot_timestamp_from_double(timestamp);
-  erlcm_slam_pose_t_publish(lcm, SLAM_POSITION_CHANNEL, &slam_pose);
+  ripl_slam_pose_t_publish(lcm, SLAM_POSITION_CHANNEL, &slam_pose);
 }
 
 static void publish_localizer_pose(int map_id, carmen_point_p particleLoc, double timestamp)
@@ -180,20 +180,20 @@ int projectRangesToPoints(float * ranges, int numPoints, double thetaStart, doub
 
 void publish_speech_msg(char* property)
 {
-  erlcm_speech_cmd_t msg;
+  ripl_speech_cmd_t msg;
   msg.utime = bot_timestamp_now();
   msg.cmd_type = "LOCALIZER";
   msg.cmd_property = property;
-  erlcm_speech_cmd_t_publish(lcm, "MULTI_LOCALIZER", &msg);
+  ripl_speech_cmd_t_publish(lcm, "MULTI_LOCALIZER", &msg);
 }
 
 void publish_floor_speech_msg(char* property)
 {
-  erlcm_speech_cmd_t msg;
+  ripl_speech_cmd_t msg;
   msg.utime = bot_timestamp_now();
   msg.cmd_type = "FLOOR_AUTO_CHANGE";
   msg.cmd_property = property;
-  erlcm_speech_cmd_t_publish(lcm, "MULTI_LOCALIZER", &msg);
+  ripl_speech_cmd_t_publish(lcm, "MULTI_LOCALIZER", &msg);
 }
 
 //drawing front robot laser message 
@@ -404,7 +404,7 @@ void carmen_localize_initialize_handler(carmen_localize_initialize_message *init
 }
 
 void floor_change_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)), 
-			const erlcm_floor_change_msg_t * msg,
+			const ripl_floor_change_msg_t * msg,
 			void * user  __attribute__((unused)))
 {
   fprintf(stderr,"Floor Change Heard : %d\n", msg->floor_no);
@@ -531,11 +531,11 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
 	}
       }
       //do a floor switch 
-      erlcm_floor_change_msg_t f_msg;
+      ripl_floor_change_msg_t f_msg;
       f_msg.utime = bot_timestamp_now();
       last_floor_change_sent = f_msg.utime;
       f_msg.floor_no = floor_map[best_ind];
-      erlcm_floor_change_msg_t_publish(lcm, "FLOOR_STAUS", &f_msg);
+      ripl_floor_change_msg_t_publish(lcm, "FLOOR_STAUS", &f_msg);
       current_floor_ind = best_ind;
       publish_speech_msg("FOUND");
 
@@ -701,13 +701,13 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
 */
 
 
-void lcm_robot_laser_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char *channel __attribute__((unused)), const erlcm_robot_laser_t *msg,
+void lcm_robot_laser_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char *channel __attribute__((unused)), const ripl_robot_laser_t *msg,
     void *user)
 {
-  static erlcm_robot_laser_t *static_msg = NULL;
+  static ripl_robot_laser_t *static_msg = NULL;
   if (static_msg != NULL)
-    erlcm_robot_laser_t_destroy(static_msg);
-  static_msg = erlcm_robot_laser_t_copy(msg);
+    ripl_robot_laser_t_destroy(static_msg);
+  static_msg = ripl_robot_laser_t_copy(msg);
 
   //set invalid regions to maxrange
   for (int i=0;i<static_msg->laser.nranges;i++){
@@ -749,7 +749,7 @@ void lcm_robot_laser_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)),
 }
 
 //this reinitialize doesnt have a floor attached - ideally we should use the new message with the floor also 
-void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char *channel __attribute__((unused)), const erlcm_localize_reinitialize_cmd_t *msg,
+void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char *channel __attribute__((unused)), const ripl_localize_reinitialize_cmd_t *msg,
     void *user)
 {
   if(mmap_msg ==NULL){
@@ -829,14 +829,14 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
   
 }
 
-static void multi_gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const erlcm_multi_gridmap_t *msg, void *user)
+static void multi_gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const ripl_multi_gridmap_t *msg, void *user)
 {  
   //static carmen3d_multi_gridmap_t *static_msg = NULL;
 
   if(mmap_msg != NULL){
-    erlcm_multi_gridmap_t_destroy(mmap_msg);
+    ripl_multi_gridmap_t_destroy(mmap_msg);
   }
-  mmap_msg = erlcm_multi_gridmap_t_copy(msg);
+  mmap_msg = ripl_multi_gridmap_t_copy(msg);
 
 
   fprintf(stderr,"Multi-Map recieved Floors: %d\n", mmap_msg->no_floors);
@@ -849,16 +849,16 @@ static void multi_gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channe
   no_of_floors = mmap_msg->no_floors;
   floor_map = (int *) realloc(floor_map,sizeof(int)*mmap_msg->no_floors);
   global_carmen_mmap = (carmen_map_p *) realloc(global_carmen_mmap, no_of_floors * sizeof(carmen_map_p));
-  global_carmen3d_mmap = (erlcm_map_p *)realloc(global_carmen3d_mmap, no_of_floors * sizeof(erlcm_map_p));
+  global_carmen3d_mmap = (ripl_map_p *)realloc(global_carmen3d_mmap, no_of_floors * sizeof(ripl_map_p));
   mmap = (carmen3d_localize_map_p *)realloc(mmap, no_of_floors * sizeof(carmen3d_localize_map_p));
   mfilter = (carmen3d_localize_particle_filter_p *) realloc(mfilter, sizeof(carmen3d_localize_particle_filter_p) * no_of_floors);
   msummary = (carmen3d_localize_summary_t *) realloc(msummary, sizeof(carmen3d_localize_summary_t) * no_of_floors);
   for(int map_id=0;map_id<mmap_msg->no_floors; map_id++){
     mmap[map_id] = (carmen3d_localize_map_p) malloc(sizeof(carmen3d_localize_map_t));
     memset(mmap[map_id], 0, sizeof(carmen3d_localize_map_t));
-    global_carmen3d_mmap[map_id] = (erlcm_map_p) malloc(sizeof(erlcm_map_t)); 
-    //erlcm_map_t sub_map;
-    memset(global_carmen3d_mmap[map_id], 0,sizeof(erlcm_map_t));
+    global_carmen3d_mmap[map_id] = (ripl_map_p) malloc(sizeof(ripl_map_t)); 
+    //ripl_map_t sub_map;
+    memset(global_carmen3d_mmap[map_id], 0,sizeof(ripl_map_t));
     floor_map[map_id] = mmap_msg->maps[map_id].floor_no;
     //if(current_floor_ind == map_id){
     //current_floor_no = static_msg->maps[map_id].floor_no;
@@ -890,20 +890,20 @@ static void multi_gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channe
 
   //unsubscribe 
 
-  erlcm_multi_gridmap_t_unsubscribe(lcm, sub);
-  erlcm_multi_gridmap_t_unsubscribe(lcm, sub_1);
+  ripl_multi_gridmap_t_unsubscribe(lcm, sub);
+  ripl_multi_gridmap_t_unsubscribe(lcm, sub_1);
 }
 
 //this method is not useful anymore as we will be dealing with the multi-floor map messages even if we 
 //only travel a single floor 
 /*
-static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const erlcm_gridmap_t *msg, void *user)
+static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const ripl_gridmap_t *msg, void *user)
 {
   fprintf(stderr,"Gridmap Received\n");
   if (global_map_msg != NULL) {
-    erlcm_gridmap_t_destroy(global_map_msg);
+    ripl_gridmap_t_destroy(global_map_msg);
   }
-  global_map_msg = erlcm_gridmap_t_copy(msg);
+  global_map_msg = ripl_gridmap_t_copy(msg);
 
 
   fprintf(stderr,"New map recieved\n");
@@ -928,11 +928,11 @@ static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, con
 void create_localize_mmap()
 {
 // subscripe to map, and wait for it to come in...
-  erlcm_map_request_msg_t msg;
+  ripl_map_request_msg_t msg;
   msg.utime =  carmen_get_time()*1e6;
   msg.requesting_prog = "LOCALIZE_MULTI";
 
-  erlcm_map_request_msg_t_publish(lcm,"MMAP_REQUEST_CHANNEL",&msg);
+  ripl_map_request_msg_t_publish(lcm,"MMAP_REQUEST_CHANNEL",&msg);
   
   carmen_warn("Waiting for a map");
   while (mmap_msg == NULL) {
@@ -947,16 +947,16 @@ void create_localize_mmap()
 /*void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p param)
 {
   // subscripe to map, and wait for it to come in...
-  erlcm_map_request_msg_t msg;
+  ripl_map_request_msg_t msg;
   msg.utime =  carmen_get_time()*1e6;
   msg.requesting_prog = "LOCALIZE";
 
-  erlcm_map_request_msg_t_publish(lcm,"MAP_REQUEST_CHANNEL",&msg);
+  ripl_map_request_msg_t_publish(lcm,"MAP_REQUEST_CHANNEL",&msg);
 
-  erlcm_gridmap_t_subscription_t * sub = erlcm_gridmap_t_subscribe(lcm, "MAP_SERVER", gridmap_handler,
+  ripl_gridmap_t_subscription_t * sub = ripl_gridmap_t_subscribe(lcm, "MAP_SERVER", gridmap_handler,
       NULL);
 
-  erlcm_gridmap_t_subscription_t * sub_1 = erlcm_gridmap_t_subscribe(lcm, "FINAL_SLAM", gridmap_handler,
+  ripl_gridmap_t_subscription_t * sub_1 = ripl_gridmap_t_subscribe(lcm, "FINAL_SLAM", gridmap_handler,
       NULL);
   carmen_warn("Waiting for a map");
   while (global_map_msg == NULL) {
@@ -977,7 +977,7 @@ void create_localize_mmap()
   }*/
 
 void tagging_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)), 
-		    const erlcm_tagged_node_t * msg,
+		    const ripl_tagged_node_t * msg,
 		    void * user  __attribute__((unused)))
 {
   char* type = msg->type;
@@ -1021,7 +1021,7 @@ int main(int argc, char **argv)
   global_carmen_mmap = NULL;//(carmen_map_p) calloc(1, sizeof(carmen_map_t));
   //carmen_test_alloc(global_carmen_map);
 
-  global_carmen3d_mmap = NULL;//(erlcm_map_p) calloc(1, sizeof(erlcm_map_t));
+  global_carmen3d_mmap = NULL;//(ripl_map_p) calloc(1, sizeof(ripl_map_t));
   //carmen_test_alloc(global_carmen3d_map);
 
   laser_proj = laser_projector_new(b_param, NULL, "SKIRT_FRONT",0);
@@ -1034,13 +1034,13 @@ int main(int argc, char **argv)
   //read_parameters_from_conf(argc, argv, &param, lcm);
   read_parameters_from_conf(argc, argv, &param, lcm, b_param);
 
-  erlcm_tagged_node_t_subscribe(lcm, "WHEELCHAIR_MODE", tagging_handler, NULL);
+  ripl_tagged_node_t_subscribe(lcm, "WHEELCHAIR_MODE", tagging_handler, NULL);
 
-  erlcm_localize_reinitialize_cmd_t_subscribe(lcm, LOCALIZE_REINITIALIZE_CHANNEL,
+  ripl_localize_reinitialize_cmd_t_subscribe(lcm, LOCALIZE_REINITIALIZE_CHANNEL,
 						 lcm_localize_reinitialize_handler, NULL);
   
-  sub = erlcm_multi_gridmap_t_subscribe(lcm, "MMAP_SERVER", multi_gridmap_handler, NULL);
-  sub_1 = erlcm_multi_gridmap_t_subscribe(lcm, "FINAL_MULTI_SLAM", multi_gridmap_handler, NULL);
+  sub = ripl_multi_gridmap_t_subscribe(lcm, "MMAP_SERVER", multi_gridmap_handler, NULL);
+  sub_1 = ripl_multi_gridmap_t_subscribe(lcm, "FINAL_MULTI_SLAM", multi_gridmap_handler, NULL);
   /* get a map */
   //create_localize_map(&map, &param);
   create_localize_mmap();
@@ -1075,10 +1075,10 @@ int main(int argc, char **argv)
   initialize_msg.mean = &mean_map;
   initialize_msg.std = &std;
  
-  erlcm_floor_change_msg_t_subscribe(lcm, "FLOOR_STAUS", floor_change_handler, NULL);
-  erlcm_robot_laser_t_subscribe(lcm, ROBOT_LASER_CHANNEL, lcm_robot_laser_handler, NULL); //(void*)this);
+  ripl_floor_change_msg_t_subscribe(lcm, "FLOOR_STAUS", floor_change_handler, NULL);
+  ripl_robot_laser_t_subscribe(lcm, ROBOT_LASER_CHANNEL, lcm_robot_laser_handler, NULL); //(void*)this);
   //carmen_localize_initialize_handler(&initialize_msg);
-  /*erlcm_localize_reinitialize_cmd_t_subscribe(lcm, LOCALIZE_REINITIALIZE_CHANNEL,
+  /*ripl_localize_reinitialize_cmd_t_subscribe(lcm, LOCALIZE_REINITIALIZE_CHANNEL,
     lcm_localize_reinitialize_handler, NULL);*/
 
   lcm_dispatch(lcm);

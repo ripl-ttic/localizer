@@ -58,9 +58,9 @@ typedef struct _state_t{
     bot_lcmgl_t * lcmgl_particles;
     bot_lcmgl_t * lcmgl_laser;
     Laser_projector *laser_proj;
-    erlcm_gridmap_t* global_map_msg;
+    ripl_gridmap_t* global_map_msg;
     carmen_map_p global_carmen_map;
-    erlcm_map_p global_carmen3d_map;
+    ripl_map_p global_carmen3d_map;
     double laser_max_range;
     BotFrames *frames;
 
@@ -121,7 +121,7 @@ gboolean heartbeat_cb (gpointer data)
 
 static void publish_slam_pose(carmen_point_p particleLoc, double timestamp, state_t *s)
 {
-    static erlcm_slam_pose_t slam_pose;
+    static ripl_slam_pose_t slam_pose;
     memset(&slam_pose, 0, sizeof(slam_pose));
 
     carmen_point_t summary_mean_global = carmen3d_map_map_to_global_coordinates(*particleLoc, s->global_carmen3d_map);
@@ -131,7 +131,7 @@ static void publish_slam_pose(carmen_point_p particleLoc, double timestamp, stat
     double rpy[3] = { 0, 0, summary_mean_global.theta };
     bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
     slam_pose.utime = bot_timestamp_from_double(timestamp);
-    erlcm_slam_pose_t_publish(s->lcm, SLAM_POSITION_CHANNEL, &slam_pose);
+    ripl_slam_pose_t_publish(s->lcm, SLAM_POSITION_CHANNEL, &slam_pose);
 }
 
 static void publish_localizer_pose(carmen_point_p particleLoc, double timestamp, state_t *self)
@@ -673,7 +673,7 @@ void on_planar_lidar(const lcm_recv_buf_t *rbuf __attribute__((unused)),
 
 void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)),
                                        const char *channel __attribute__((unused)),
-                                       const erlcm_localize_reinitialize_cmd_t *msg,
+                                       const ripl_localize_reinitialize_cmd_t *msg,
                                        void *user)
 {
     state_t *s = (state_t *) user;
@@ -866,15 +866,15 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
 }
 
 
-static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const erlcm_gridmap_t *msg, void *user)
+static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const ripl_gridmap_t *msg, void *user)
 {
     state_t *s = (state_t *) user;
 
     fprintf(stderr,"Gridmap Received\n");
     if (s->global_map_msg != NULL) {
-        erlcm_gridmap_t_destroy(s->global_map_msg);
+        ripl_gridmap_t_destroy(s->global_map_msg);
     }
-    s->global_map_msg = erlcm_gridmap_t_copy(msg);
+    s->global_map_msg = ripl_gridmap_t_copy(msg);
 
     fprintf(stderr,"New map recieved\n");
 
@@ -929,16 +929,16 @@ static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, con
 void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p param, state_t *s)
 {
     /* subscripe to map, and wait for it to come in... */
-    erlcm_map_request_msg_t msg;
+    ripl_map_request_msg_t msg;
     msg.utime =  carmen_get_time()*1e6;
     msg.requesting_prog = "LOCALIZE";
 
 
 
-    erlcm_gridmap_t_subscription_t * sub = erlcm_gridmap_t_subscribe(s->lcm, "MAP_SERVER", gridmap_handler,
+    ripl_gridmap_t_subscription_t * sub = ripl_gridmap_t_subscribe(s->lcm, "MAP_SERVER", gridmap_handler,
                                                                      s);
 
-    erlcm_gridmap_t_subscription_t * sub_1 = erlcm_gridmap_t_subscribe(s->lcm, "FINAL_SLAM", gridmap_handler,
+    ripl_gridmap_t_subscription_t * sub_1 = ripl_gridmap_t_subscribe(s->lcm, "FINAL_SLAM", gridmap_handler,
                                                                        s);
     fprintf(stderr,"Waiting for a map");
     int sent_map_req = 0;
@@ -946,7 +946,7 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
     while (s->global_map_msg == NULL) {
         if(!sent_map_req){
             sent_map_req = 1;
-            erlcm_map_request_msg_t_publish(s->lcm,"MAP_REQUEST_CHANNEL",&msg);
+            ripl_map_request_msg_t_publish(s->lcm,"MAP_REQUEST_CHANNEL",&msg);
         }
         lcm_sleep(s->lcm, .25);
 
@@ -991,7 +991,7 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
 }
 
 void tagging_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)),
-                     const erlcm_tagged_node_t * msg,
+                     const ripl_tagged_node_t * msg,
                      void * user  __attribute__((unused)))
 {
     char* type = msg->type;
@@ -1116,12 +1116,12 @@ int main(int argc, char **argv)
     self->global_carmen_map = (carmen_map_p) calloc(1, sizeof(carmen_map_t));
     carmen_test_alloc(self->global_carmen_map);
 
-    self->global_carmen3d_map = (erlcm_map_p) calloc(1, sizeof(erlcm_map_t));
+    self->global_carmen3d_map = (ripl_map_p) calloc(1, sizeof(ripl_map_t));
     carmen_test_alloc(self->global_carmen3d_map);
 
-    erlcm_tagged_node_t_subscribe(self->lcm, "WHEELCHAIR_MODE", tagging_handler, self);
+    ripl_tagged_node_t_subscribe(self->lcm, "WHEELCHAIR_MODE", tagging_handler, self);
 
-    erlcm_localize_reinitialize_cmd_t_subscribe(self->lcm, LOCALIZE_REINITIALIZE_CHANNEL,
+    ripl_localize_reinitialize_cmd_t_subscribe(self->lcm, LOCALIZE_REINITIALIZE_CHANNEL,
                                                 lcm_localize_reinitialize_handler, self);
 
 
