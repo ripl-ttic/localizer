@@ -36,8 +36,8 @@
 #include <bot_lcmgl_client/lcmgl.h>
 #include <laser_utils/laser_util.h>
 #include <interfaces/map3d_interface.h>
-#include <hr_common/carmen3d_global.h>
-#include <hr_common/common_utils.h>
+#include <carmen_utils/carmen3d_global.h>
+#include <common_utils/common_utils.h>
 #include <GL/gl.h>
 #include <getopt.h>
 

@@ -28,9 +28,10 @@
 
 //#include <carmen/carmen.h>
 #include <carmen_utils/carmen.h>
+#include <carmen_utils/carmen3d_global.h>
+
 #include "localize3dcore.h"
 #include "localize3d_motion.h"
-#include <hr_common/carmen3d_global.h>
 
 //#define HOLONOMIC
 #define HOLONOMIC_XY_DEV 0.02//0.0075 //TODO: shouldn't be hardcoded
@@ -202,7 +203,7 @@ carmen3d_localize_particle_filter_p carmen3d_localize_particle_filter_new(carmen
     return filter;
 }
 
-//there is an error here - the front laser offset is being used when calculating the weights - irrespective 
+//there is an error here - the front laser offset is being used when calculating the weights - irrespective
 void carmen3d_localize_initialize_particles_uniform(carmen3d_localize_particle_filter_p filter,
                                                     carmen_robot_laser_message *laser, carmen3d_localize_map_p map)
 {
@@ -252,7 +253,7 @@ void carmen3d_localize_initialize_particles_uniform(carmen3d_localize_particle_f
             //carmen_ipc_sleep(0.001);
             usleep(10000);
 
-            
+
         }
         do {
             point.x = carmen_uniform_random(0, map->config.x_size - 1);
@@ -437,9 +438,9 @@ void carmen3d_localize_incorporate_odometry(carmen3d_localize_particle_filter_p 
     }
 #ifdef HOLONOMIC
     carmen_point_t delta = carmen3d_body2D_difference(&odometry_position,&filter->last_odometry_position);
-  
+
     filter->distance_travelled += sqrt(delta.x * delta.x + delta.y * delta.y);
-    
+
     filter->heading_turned += fabs(delta.theta);
 
     double delta_dist = sqrt(delta.x * delta.x + delta.y * delta.y);
@@ -471,7 +472,7 @@ void carmen3d_localize_incorporate_odometry(carmen3d_localize_particle_filter_p 
 
     filter->distance_travelled += delta_t;
     filter->heading_turned += delta_theta;
-    
+
 
 #ifndef OLD_MOTION_MODEL
     for(i = 0; i < filter->param->num_particles; i++) {
@@ -770,14 +771,14 @@ void carmen3d_localize_run(carmen3d_localize_particle_filter_p filter, carmen3d_
     robot_position.y = laser->robot_pose.y;
     robot_position.theta = laser->robot_pose.theta;
     carmen3d_localize_incorporate_odometry(filter, robot_position);
-  
+
     if (filter->param->use_sensor) {
         /* incorporate the laser scan */
         carmen3d_localize_incorporate_laser(filter, map, laser->num_readings, laser->range, forward_offset,
                                             laser->config.angular_resolution, laser->config.maximum_range, laser->config.start_angle, backwards);
 
         /* check if it is time to resample */
-        if (filter->distance_travelled > filter->param->update_distance || 
+        if (filter->distance_travelled > filter->param->update_distance ||
             filter->heading_turned > filter->param->update_heading) {
             carmen3d_localize_resample(filter);
             filter->distance_travelled = 0;
