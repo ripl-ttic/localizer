@@ -34,7 +34,7 @@
 #include <bot_core/bot_core.h>
 #include <bot_lcmgl_client/lcmgl.h>
 
-#include <er_common/lcm_utils.h>
+#include <er_common/common_utils.h>
 
 #include <interfaces/map3d_interface.h>
 #include <laser_utils/laser_util.h>
@@ -113,7 +113,7 @@ static void publish_slam_pose(int map_id, carmen_point_p particleLoc, double tim
   slam_pose.pos[1] = summary_mean_global.y;
   double rpy[3] = { 0, 0, summary_mean_global.theta };
   bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
-  slam_pose.utime = bot_timestamp_from_double(timestamp);
+  slam_pose.utime = common_bot_timestamp_from_double(timestamp);
   ripl_slam_pose_t_publish(lcm, SLAM_POSITION_CHANNEL, &slam_pose);
 }
 
@@ -130,7 +130,7 @@ static void publish_localizer_pose(int map_id, carmen_point_p particleLoc, doubl
   double rpy[3] = { 0, 0, summary_mean_global.theta };
 
   bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
-  slam_pose.utime = bot_timestamp_from_double(timestamp);
+  slam_pose.utime = common_bot_timestamp_from_double(timestamp);
   bot_core_pose_t_publish(lcm, "POSE", &slam_pose);
 
   last_pose[0] = slam_pose.pos[0];
@@ -741,7 +741,7 @@ void lcm_robot_laser_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)),
   carmen_msg.range = static_msg->laser.ranges;
   carmen_msg.num_remissions = static_msg->laser.nintensities;
   carmen_msg.remission = static_msg->laser.intensities;
-  carmen_msg.timestamp = bot_timestamp_to_double(static_msg->utime);
+  carmen_msg.timestamp = common_bot_timestamp_to_double(static_msg->utime);
   carmen_msg.host = (char *) "lcm";
 
   //TODO:there are some other fields like tooclose and turn_axis etc that I don't think are used...
@@ -936,7 +936,7 @@ void create_localize_mmap()
   
   carmen_warn("Waiting for a map");
   while (mmap_msg == NULL) {
-    lcm_sleep(lcm, .25);
+    common_sleep(lcm, .25);
     carmen_warn(".");
   }
   carmen_warn("Got a map\n");
@@ -960,7 +960,7 @@ void create_localize_mmap()
       NULL);
   carmen_warn("Waiting for a map");
   while (global_map_msg == NULL) {
-    lcm_sleep(lcm, .25);
+    common_sleep(lcm, .25);
     carmen_warn(".");
   }
   carmen_warn("Got a map\n");
@@ -1081,7 +1081,7 @@ int main(int argc, char **argv)
   /*ripl_localize_reinitialize_cmd_t_subscribe(lcm, LOCALIZE_REINITIALIZE_CHANNEL,
     lcm_localize_reinitialize_handler, NULL);*/
 
-  lcm_dispatch(lcm);
+  common_lcm_dispatch(lcm);
 
   return 0;
 }

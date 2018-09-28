@@ -37,7 +37,7 @@
 #include <laser_utils/laser_util.h>
 #include <interfaces/map3d_interface.h>
 #include <hr_common/carmen3d_global.h>
-#include <hr_common/lcm_utils.h>
+#include <hr_common/common_utils.h>
 #include <GL/gl.h>
 #include <getopt.h>
 
@@ -130,7 +130,7 @@ static void publish_slam_pose(carmen_point_p particleLoc, double timestamp, stat
     slam_pose.pos[1] = summary_mean_global.y;
     double rpy[3] = { 0, 0, summary_mean_global.theta };
     bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
-    slam_pose.utime = bot_timestamp_from_double(timestamp);
+    slam_pose.utime = common_bot_timestamp_from_double(timestamp);
     ripl_slam_pose_t_publish(s->lcm, SLAM_POSITION_CHANNEL, &slam_pose);
 }
 
@@ -145,7 +145,7 @@ static void publish_localizer_pose(carmen_point_p particleLoc, double timestamp,
     slam_pose.pos[1] = summary_mean_global.y;
     double rpy[3] = { 0, 0, summary_mean_global.theta };
     bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
-    slam_pose.utime = bot_timestamp_from_double(timestamp);
+    slam_pose.utime = common_bot_timestamp_from_double(timestamp);
 
     bot_core_rigid_transform_t global_to_local;
     global_to_local.utime = slam_pose.utime;
@@ -661,7 +661,7 @@ void on_planar_lidar(const lcm_recv_buf_t *rbuf __attribute__((unused)),
     carmen_msg->range = static_msg->ranges;
     carmen_msg->num_remissions = static_msg->nintensities;
     carmen_msg->remission = static_msg->intensities;
-    carmen_msg->timestamp = bot_timestamp_to_double(static_msg->utime);
+    carmen_msg->timestamp = common_bot_timestamp_to_double(static_msg->utime);
     carmen_msg->host = (char *) "lcm";
 
     //TODO:there are some other fields like tooclose and turn_axis etc that I don't think are used...
@@ -948,7 +948,7 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
             sent_map_req = 1;
             ripl_map_request_msg_t_publish(s->lcm,"MAP_REQUEST_CHANNEL",&msg);
         }
-        lcm_sleep(s->lcm, .25);
+        common_sleep(s->lcm, .25);
 
         carmen_warn(".");
     }
@@ -1192,7 +1192,7 @@ int main(int argc, char **argv)
 
     bot_glib_mainloop_detach_lcm(self->lcm);
 
-    //    lcm_dispatch(lcm);
+    //    common_lcm_dispatch(lcm);
 
     return 0;
 }

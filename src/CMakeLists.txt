@@ -1,5 +1,5 @@
 add_definitions(
-#    -ggdb3 
+#    -ggdb3
     -std=gnu99
     )
 include_directories(
@@ -34,29 +34,29 @@ set(localize3d_general
     )
 
 set(localize3d_sources
-    localize3d.c 
+    localize3d.c
     ${localize3d_general}
     )
 
 set(localize3d_multi_sources
-    localize3d_multi.c 
+    localize3d_multi.c
     ${localize3d_general}
     )
 
-add_executable(hr-localizer ${localize3d_sources})
+add_executable(localizer ${localize3d_sources})
 
-pods_use_pkg_config_packages(hr-localizer 
+pods_use_pkg_config_packages(hr-localizer
     glib-2.0
     gthread-2.0
-    lcm 
-    bot2-core 
-    bot2-lcmgl-client  
+    lcm
+    bot2-core
+    bot2-lcmgl-client
     bot2-frames
-    bot2-param-client 
-    lcmtypes_hr-lcmtypes 
-    laser-utils 
+    bot2-param-client
+    lcmtypes_hr-lcmtypes
+    laser-utils
     map3d_interface
     carmen-utils
-    hr-common)
+    common-utils)
 
 pods_install_executables(hr-localizer)
