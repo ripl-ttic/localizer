@@ -45,8 +45,10 @@
 #include <bot_param/param_client.h>
 #include <bot_param/param_util.h>
 #include <bot_frames/bot_frames.h>
-#include <lcmtypes/bot2_param.h>
 
+#include <lcmtypes/bot2_param.h>
+#include <lcmtypes/map_lcmtypes.h>
+#include <lcmtypes/gridmap_lcmtypes.h>
 #include <lcmtypes/hr_lcmtypes.h>
 #include <hr_lcmtypes/lcm_channel_names.h>
 

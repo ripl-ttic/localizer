@@ -11,14 +11,17 @@ include_directories(
 set(localize3d_interface_sources
     localize3d_interface.c)
 
-add_library(localize3d_interface ${localize3d_interface_sources})
+add_library(localize3d_interface SHARED ${localize3d_interface_sources})
+
 pods_install_libraries(localize3d_interface)
 
 set(localize3d_motion_sources
     localize3d_motion.c)
+
 add_library(localize3d_motion ${localize3d_motion_sources})
 
 pods_install_libraries(localize3d_motion)
+
 
 pods_install_headers(localize3d_interface.h
   localize3d_motion.h
@@ -54,6 +57,8 @@ pods_use_pkg_config_packages(localizer
     bot2-frames
     bot2-param-client
     lcmtypes_hr-lcmtypes
+    lcmtypes_map
+    lcmtypes_gridmap
     laser-utils
     map3d_interface
     carmen-utils
