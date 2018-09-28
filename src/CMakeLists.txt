@@ -45,7 +45,7 @@ set(localize3d_multi_sources
 
 add_executable(localizer ${localize3d_sources})
 
-pods_use_pkg_config_packages(hr-localizer
+pods_use_pkg_config_packages(localizer
     glib-2.0
     gthread-2.0
     lcm
@@ -59,4 +59,4 @@ pods_use_pkg_config_packages(hr-localizer
     carmen-utils
     common-utils)
 
-pods_install_executables(hr-localizer)
+pods_install_executables(localizer)
