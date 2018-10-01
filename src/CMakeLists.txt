@@ -5,7 +5,8 @@ add_definitions(
 include_directories(
     ${GLIB2_INCLUDE_DIRS}
     ${GTK2_INCLUDE_DIRS}
-    ${LCM_INCLUDE_DIRS})
+    ${LCM_INCLUDE_DIRS}
+    ${LCMTYPES_INCLUDE_DIRS})
 
 # localize interface library
 set(localize3d_interface_sources
@@ -48,6 +49,8 @@ set(localize3d_multi_sources
 
 add_executable(localizer ${localize3d_sources})
 
+target_link_libraries (localizer ${LCMTYPES_LIBS})
+
 pods_use_pkg_config_packages(localizer
     glib-2.0
     gthread-2.0
@@ -56,7 +59,6 @@ pods_use_pkg_config_packages(localizer
     bot2-lcmgl-client
     bot2-frames
     bot2-param-client
-    lcmtypes_hr-lcmtypes
     lcmtypes_map
     lcmtypes_gridmap
     laser-utils

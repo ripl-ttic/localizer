@@ -49,8 +49,7 @@
 #include <lcmtypes/bot2_param.h>
 #include <lcmtypes/map_lcmtypes.h>
 #include <lcmtypes/gridmap_lcmtypes.h>
-#include <lcmtypes/hr_lcmtypes.h>
-#include <hr_lcmtypes/lcm_channel_names.h>
+#include <lcmtypes/ripl_localize_reinitialize_cmd_t.h>
 
 #define PUBLISH_GLOBAL_TO_LOCAL_HZ 10
 
@@ -120,21 +119,21 @@ gboolean heartbeat_cb (gpointer data)
 }
 
 /* publish a global position message */
-
-static void publish_slam_pose(carmen_point_p particleLoc, double timestamp, state_t *s)
-{
-    static ripl_slam_pose_t slam_pose;
-    memset(&slam_pose, 0, sizeof(slam_pose));
-
-    carmen_point_t summary_mean_global = carmen3d_map_map_to_global_coordinates(*particleLoc, s->global_carmen3d_map);
-
-    slam_pose.pos[0] = summary_mean_global.x;
-    slam_pose.pos[1] = summary_mean_global.y;
-    double rpy[3] = { 0, 0, summary_mean_global.theta };
-    bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
-    slam_pose.utime = common_bot_timestamp_from_double(timestamp);
-    ripl_slam_pose_t_publish(s->lcm, SLAM_POSITION_CHANNEL, &slam_pose);
-}
+// Nobody subscribes to this message
+// static void publish_slam_pose(carmen_point_p particleLoc, double timestamp, state_t *s)
+// {
+//     static ripl_slam_pose_t slam_pose;
+//     memset(&slam_pose, 0, sizeof(slam_pose));
+//
+//     carmen_point_t summary_mean_global = carmen3d_map_map_to_global_coordinates(*particleLoc, s->global_carmen3d_map);
+//
+//     slam_pose.pos[0] = summary_mean_global.x;
+//     slam_pose.pos[1] = summary_mean_global.y;
+//     double rpy[3] = { 0, 0, summary_mean_global.theta };
+//     bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
+//     slam_pose.utime = common_bot_timestamp_from_double(timestamp);
+//     ripl_slam_pose_t_publish(s->lcm, SLAM_POSITION_CHANNEL, &slam_pose);
+// }
 
 static void publish_localizer_pose(carmen_point_p particleLoc, double timestamp, state_t *self)
 {
@@ -506,7 +505,7 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
         }
 
         if (s->summary.converged) {
-            publish_slam_pose(&(s->summary.mean),flaser->timestamp, s);
+            //publish_slam_pose(&(s->summary.mean),flaser->timestamp, s);
             publish_localizer_pose(&(s->summary.mean),flaser->timestamp, s);
         }
         //draw_particles_lcmgl(filter, &summary);
@@ -573,7 +572,7 @@ void robot_rearlaser_handler(carmen_robot_laser_message *flaser, state_t *s)
         }
 
         if (s->summary.converged) {
-            publish_slam_pose(&(s->summary.mean),flaser->timestamp, s);
+            //publish_slam_pose(&(s->summary.mean),flaser->timestamp, s);
             publish_localizer_pose(&(s->summary.mean),flaser->timestamp, s);
         }
         //draw_particles_lcmgl(filter, &summary);
@@ -1123,8 +1122,7 @@ int main(int argc, char **argv)
 
     ripl_tagged_node_t_subscribe(self->lcm, "WHEELCHAIR_MODE", tagging_handler, self);
 
-    ripl_localize_reinitialize_cmd_t_subscribe(self->lcm, LOCALIZE_REINITIALIZE_CHANNEL,
-                                                lcm_localize_reinitialize_handler, self);
+    ripl_localize_reinitialize_cmd_t_subscribe(self->lcm, "LOCALIZE_REINITIALIZE", lcm_localize_reinitialize_handler, self);
 
 
     /* get a map */

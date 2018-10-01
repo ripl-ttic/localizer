@@ -1,0 +1,12 @@
+package ripl;
+
+// Instructs the localization particle filter to re-initialize the
+// particles to a normal distribution.
+
+struct localize_reinitialize_cmd_t
+{
+    int64_t utime;
+
+    double mean[3];     // x, y, theta
+    double variance[3]; // diagonal covariance matrix
+}
