@@ -26,10 +26,11 @@
  *
  ********************************************************/
 
+ #include <GL/gl.h>
+
+
 #include <carmen/carmen.h>
-#include "localize3dcore.h"
-#include "localize3d_messages.h"
-#include "localize3d_motion.h"
+
 
 #include <bot_core/bot_core.h>
 #include <bot_lcmgl_client/lcmgl.h>
@@ -41,14 +42,17 @@
 
 //we should phase these out at some point
 //#include <common3d/carmen3d_common.h>
-#include <GL/gl.h>
 
 //bot param stuff
 #include <bot_param/param_client.h>
 #include <lcmtypes/bot2_param.h>
 
 #include <lcmtypes/er_lcmtypes.h>
-#include <er_lcmtypes/lcm_channel_names.h>
+#include <hr_lcmtypes/lcm_channel_names.h>
+
+#include "localize3dcore.h"
+#include "localize3d_messages.h"
+#include "localize3d_motion.h"
 
 /* global variables */
 static lcm_t * lcm = NULL;
@@ -93,10 +97,10 @@ int getFloorIndex(int floor_no){
   int floor_ind = -1;
   if(floor_map !=NULL){
     for(int i=0;i<no_valid_floors; i++){
-      if(floor_map[i] == floor_no){ 
+      if(floor_map[i] == floor_no){
 	floor_ind = i;
 	return floor_ind;
-      }    
+      }
     }
   }
   return floor_ind;
@@ -104,17 +108,17 @@ int getFloorIndex(int floor_no){
 
 static void publish_slam_pose(int map_id, carmen_point_p particleLoc, double timestamp)
 {
-  static ripl_slam_pose_t slam_pose;
-  memset(&slam_pose, 0, sizeof(slam_pose));
-
-  carmen_point_t summary_mean_global = carmen3d_map_map_to_global_coordinates(*particleLoc, global_carmen3d_mmap[map_id]);
-
-  slam_pose.pos[0] = summary_mean_global.x;
-  slam_pose.pos[1] = summary_mean_global.y;
-  double rpy[3] = { 0, 0, summary_mean_global.theta };
-  bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
-  slam_pose.utime = common_bot_timestamp_from_double(timestamp);
-  ripl_slam_pose_t_publish(lcm, SLAM_POSITION_CHANNEL, &slam_pose);
+  // static ripl_slam_pose_t slam_pose;
+  // memset(&slam_pose, 0, sizeof(slam_pose));
+  //
+  // carmen_point_t summary_mean_global = carmen3d_map_map_to_global_coordinates(*particleLoc, global_carmen3d_mmap[map_id]);
+  //
+  // slam_pose.pos[0] = summary_mean_global.x;
+  // slam_pose.pos[1] = summary_mean_global.y;
+  // double rpy[3] = { 0, 0, summary_mean_global.theta };
+  // bot_roll_pitch_yaw_to_quat(rpy, slam_pose.orientation);
+  // slam_pose.utime = common_bot_timestamp_from_double(timestamp);
+  // ripl_slam_pose_t_publish(lcm, SLAM_POSITION_CHANNEL, &slam_pose);
 }
 
 static void publish_localizer_pose(int map_id, carmen_point_p particleLoc, double timestamp)
@@ -196,7 +200,7 @@ void publish_floor_speech_msg(char* property)
   ripl_speech_cmd_t_publish(lcm, "MULTI_LOCALIZER", &msg);
 }
 
-//drawing front robot laser message 
+//drawing front robot laser message
 static void draw_laser_lcmgl_multi(int map_id, carmen_point_p meanLoc, carmen_point_p maxParticleLoc, carmen_robot_laser_message *flaser)
 {
   point2d_t * points = (point2d_t *) calloc(flaser->num_readings, sizeof(point2d_t));
@@ -237,14 +241,14 @@ static void draw_laser_lcmgl_multi(int map_id, carmen_point_p meanLoc, carmen_po
   bot_lcmgl_end(lcmgl_laser);
   free(points);
   bot_lcmgl_switch_buffer(lcmgl_laser);
-  
+
 }
 
-//draw all the filter particles 
+//draw all the filter particles
 /* publish a particle message */
 static void draw_particles_lcmgl_multi()
 {
-  
+
   for(int map_id=0;map_id<no_valid_floors; map_id++){
     carmen3d_localize_particle_filter_p filter =  mfilter[map_id];
     carmen3d_localize_summary_p summary = &msummary[map_id];
@@ -380,7 +384,7 @@ void carmen_localize_initialize_handler(carmen_localize_initialize_message *init
     //the localize_initialize should have the current floor - or we should have the current floor ind
     //the floor here is ambiguous if we depend on the floor change to change the floor
     if(current_floor_ind >=0 && current_floor_ind < no_valid_floors){
-      carmen3d_localize_initialize_particles_gaussians(mfilter[current_floor_ind], initialize_msg->num_modes, 
+      carmen3d_localize_initialize_particles_gaussians(mfilter[current_floor_ind], initialize_msg->num_modes,
 						     initialize_msg->mean,
 						     initialize_msg->std);
     }
@@ -397,13 +401,13 @@ void carmen_localize_initialize_handler(carmen_localize_initialize_message *init
     converged_floor = -1;
     for(int i=0;i<no_valid_floors; i++){
       carmen3d_localize_initialize_particles_uniform(mfilter[i], &carmen_msg, mmap[i]);
-    }    
+    }
   }
   fprintf(stderr,"Done Init\n");
   //draw_particles_lcmgl(filter, &summary);
 }
 
-void floor_change_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)), 
+void floor_change_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)),
 			const ripl_floor_change_msg_t * msg,
 			void * user  __attribute__((unused)))
 {
@@ -412,7 +416,7 @@ void floor_change_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), co
     fprintf(stderr,"No maps/floors received\n");
     return;
   }
-  
+
   if(current_floor_ind == getFloorIndex(msg->floor_no)){
     fprintf(stderr,"No actual change in floor C:%d New: %d\n", floor_map[current_floor_ind],msg->floor_no );
     return; //no floor change event has occured
@@ -432,7 +436,7 @@ void floor_change_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), co
       initialize_msg.distribution = CARMEN_INITIALIZE_GAUSSIAN;
       initialize_msg.num_modes = 1;
       carmen_point_t mean = {last_pose[0],last_pose[1], last_pose[2] };
-      //this should have a floor attched - or use the current floor 
+      //this should have a floor attched - or use the current floor
       int floor_ind = current_floor_ind;
       carmen_point_t mean_map = carmen3d_map_global_to_map_coordinates(mean, global_carmen3d_mmap[floor_ind]);
 
@@ -471,7 +475,7 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
   dist_travelled = hypot(flaser->robot_pose.x - last_pose[0],flaser->robot_pose.y - last_pose[1]);
   last_pose[0] = flaser->robot_pose.x;
   last_pose[1] = flaser->robot_pose.y;
-  
+
   if(dist_travelled==0){
     fprintf(stdout,"-");
     return;
@@ -486,37 +490,37 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
       if (mfilter[i]->initialized) {
 	carmen3d_localize_summarize(mfilter[i], &msummary[i], mmap[i], flaser->num_readings, flaser->range,
 				  mfilter[i]->param->front_laser_offset, flaser->config.angular_resolution, flaser->config.start_angle, 0);
-	avg_weight[i] = 0;     
-            
+	avg_weight[i] = 0;
+
 	for (int k = 0; k < mfilter[i]->param->num_particles; k++) {
 	  avg_weight[i] += mfilter[i]->particles->weight;
 	}
 	fprintf(stderr,"Total weight %d => %f\n", floor_map[i], avg_weight[i]);
-	avg_weight[i] /= mfilter[i]->param->num_particles;      
+	avg_weight[i] /= mfilter[i]->param->num_particles;
       }
       else{
 	avg_weight[i] = -1000;
       }
     }
-  
+
     int best_ind = -1;
     double best_prob = -10.0;//-5.0;
     int filters_converged = 1;
     int filters_initialized = 0;
 
-    for(int i=0;i<no_valid_floors; i++){    
+    for(int i=0;i<no_valid_floors; i++){
       if (mfilter[i]->initialized) {
 	filters_initialized = 1;
-	fprintf(stderr,"==== Floor : %d => Avg Weight : %f Converged : %d\n", 
+	fprintf(stderr,"==== Floor : %d => Avg Weight : %f Converged : %d\n",
 		floor_map[i], avg_weight[i], msummary[i].converged);
-	if(msummary[i].converged ==0){//there is an unconverged filter 
+	if(msummary[i].converged ==0){//there is an unconverged filter
 	  filters_converged = 0;
 	}
 	if((avg_weight[i] > best_prob && msummary[i].converged) && avg_weight[i] !=0.0){
 	  best_ind = i;
-	  best_prob = avg_weight[i];	  
+	  best_prob = avg_weight[i];
 	}
-      }    
+      }
     }
     if(best_ind >=0){
       double maxWeight = -1e9;
@@ -530,7 +534,7 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
 	  maxParticle.theta = mfilter[best_ind]->particles->theta;
 	}
       }
-      //do a floor switch 
+      //do a floor switch
       ripl_floor_change_msg_t f_msg;
       f_msg.utime = bot_timestamp_now();
       last_floor_change_sent = f_msg.utime;
@@ -542,7 +546,7 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
       char buf[10];
       sprintf(buf,"%d", floor_map[best_ind]);
       publish_floor_speech_msg(buf);
-      //when we send this floor change - this causes the map_server to reinitlialze the localizer 
+      //when we send this floor change - this causes the map_server to reinitlialze the localizer
 
       converged_floor = best_ind;
       draw_laser_lcmgl_multi(best_ind,&msummary[best_ind].mean, &maxParticle, flaser);
@@ -551,7 +555,7 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
       publish_localizer_pose(best_ind,&msummary[best_ind].mean,flaser->timestamp);
     }
     else{
-      if(filters_converged && filters_initialized){//filters have all converged but we do not have a good candidate 
+      if(filters_converged && filters_initialized){//filters have all converged but we do not have a good candidate
 	//reinitializing
 	filter_initialized = 0;
 	publish_speech_msg("RESTART");
@@ -562,31 +566,31 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
   else{
     fprintf(stderr,"Converged Floor - doing single floor localization\n");
     carmen3d_localize_run(mfilter[converged_floor], mmap[converged_floor], flaser, mfilter[converged_floor]->param->front_laser_offset, 0);
-    double avg_weight = 0;     
+    double avg_weight = 0;
     if (mfilter[converged_floor]->initialized) {
       carmen3d_localize_summarize(mfilter[converged_floor], &msummary[converged_floor], mmap[converged_floor], flaser->num_readings, flaser->range,
 				mfilter[converged_floor]->param->front_laser_offset, flaser->config.angular_resolution, flaser->config.start_angle, 0);
 
-            
+
       for (int k = 0; k < mfilter[converged_floor]->param->num_particles; k++) {
 	avg_weight += mfilter[converged_floor]->particles->weight;
       }
-      avg_weight /= mfilter[converged_floor]->param->num_particles;      
+      avg_weight /= mfilter[converged_floor]->param->num_particles;
     }
-    
+
     if(avg_weight != 0.0){
-      static double fast_avg = .0;  
+      static double fast_avg = .0;
       static double slow_avg = .0;
-    
+
       fast_avg += 0.5 * (avg_weight - fast_avg);
       slow_avg += 0.05 * (avg_weight - slow_avg);
 
-      fprintf(stderr,"==== Current Floor [%d] Stats => Avg Weight : %f Converged : %d\n", 
+      fprintf(stderr,"==== Current Floor [%d] Stats => Avg Weight : %f Converged : %d\n",
 	      floor_map[converged_floor], avg_weight, msummary[converged_floor].converged);
-      fprintf(stderr,"Current Avg : %f , Fast Avg : %f, Slow Avg : %f\n", avg_weight, 
+      fprintf(stderr,"Current Avg : %f , Fast Avg : %f, Slow Avg : %f\n", avg_weight,
 	      fast_avg, slow_avg);
-    
-      //doesn't work so well 
+
+      //doesn't work so well
       /*if((fast_avg - slow_avg  > 4.0 && fast_avg < -35.0) || msummary[converged_floor].converged == 0){
 	fprintf(stderr,"Reinitializing Filters\n");
 	filter_initialized = 0;
@@ -598,7 +602,7 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
       publish_speech_msg("LOST");
     }
 
-    //might add code to switch back to global localization - if the prob drops 
+    //might add code to switch back to global localization - if the prob drops
 
     double maxWeight = -1e9;
     carmen_point_t maxParticle;
@@ -610,13 +614,13 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
 	maxParticle.y = mfilter[converged_floor]->particles->y;
 	maxParticle.theta = mfilter[converged_floor]->particles->theta;
       }
-    }    
+    }
     publish_slam_pose(converged_floor,&msummary[converged_floor].mean,flaser->timestamp);
     publish_localizer_pose(converged_floor,&msummary[converged_floor].mean,flaser->timestamp);
 
     draw_laser_lcmgl_multi(converged_floor,&msummary[converged_floor].mean, &maxParticle, flaser);
     draw_particles_lcmgl_single(converged_floor, mfilter[converged_floor], &msummary[converged_floor]);
-    //draw laser and particles 
+    //draw laser and particles
   }
 
   for(int i=0;i<no_valid_floors; i++){
@@ -649,20 +653,20 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
 
 /*void robot_frontlaser_handler_1(carmen_robot_laser_message *flaser)
 {
-  
-    
+
+
   fprintf(stderr, "F");
   carmen3d_localize_run(filter, &map, flaser, filter->param->front_laser_offset, 0);
   if (filter->initialized) {
     //carmen3d_localize_summarize(filter, &summary, &map, flaser->num_readings, flaser->range,
         //filter->param->front_laser_offset, flaser->config.angular_resolution, flaser->config.start_angle, 0);
-    
+
     for(int i=0;i<no_valid_floors; i++){
       carmen3d_localize_summarize(mfilter[i], &msummary[i], mmap[i], flaser->num_readings, flaser->range,
         mfilter[i]->param->front_laser_offset, flaser->config.angular_resolution, flaser->config.start_angle, 0);
 
     }
-    
+
 
     //if (summary.converged) {
     for(int i=0;i<no_valid_floors; i++){
@@ -675,7 +679,7 @@ void robot_frontlaser_handler(carmen_robot_laser_message *flaser)
 
     draw_laser_lcmgl(&summary.mean, &maxParticle, flaser);
   }
-  
+
   if(filter_initialized ==0){
     fprintf(stderr,"Initializing Filter\n");
     carmen_localize_initialize_message initialize_msg;
@@ -748,7 +752,7 @@ void lcm_robot_laser_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)),
   robot_frontlaser_handler(&carmen_msg);
 }
 
-//this reinitialize doesnt have a floor attached - ideally we should use the new message with the floor also 
+//this reinitialize doesnt have a floor attached - ideally we should use the new message with the floor also
 void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char *channel __attribute__((unused)), const ripl_localize_reinitialize_cmd_t *msg,
     void *user)
 {
@@ -768,7 +772,7 @@ void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__(
   initialize_msg.distribution = CARMEN_INITIALIZE_GAUSSIAN;
   initialize_msg.num_modes = 1;
   carmen_point_t mean = { msg->mean[0], msg->mean[1], msg->mean[2] };
-  //this should have a floor attched - or use the current floor 
+  //this should have a floor attched - or use the current floor
   int floor_ind = current_floor_ind;
   carmen_point_t mean_map = carmen3d_map_global_to_map_coordinates(mean, global_carmen3d_mmap[floor_ind]);
 
@@ -790,14 +794,14 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
   double integrate_angle_deg;
   integrate_angle_deg = 1.0;
 
-   
+
   param->front_laser_offset = bot_param_get_double_or_fail(b_param, "robot.frontlaser_offset");
   fprintf(stderr, "%f\n", param->front_laser_offset);
   param->rear_laser_offset = bot_param_get_double_or_fail(b_param, "robot.rearlaser_offset");
   param->front_laser_side_offset =  bot_param_get_double_or_fail(b_param, "robot.frontlaser_side_offset");
   param->rear_laser_side_offset = bot_param_get_double_or_fail(b_param,"robot.rearlaser_side_offset");
   param->front_laser_angle_offset = bot_param_get_double_or_fail(b_param,"robot.frontlaser_angular_offset");
-  param->rear_laser_angle_offset = bot_param_get_double_or_fail(b_param,"robot.rearlaser_angular_offset");  
+  param->rear_laser_angle_offset = bot_param_get_double_or_fail(b_param,"robot.rearlaser_angular_offset");
   param->use_rear_laser = bot_param_get_boolean_or_fail(b_param,"localizer.use_rear_laser");
   param->num_particles =bot_param_get_int_or_fail(b_param,"localizer.num_particles");
   param->max_range = bot_param_get_double_or_fail(b_param,"localizer.laser_max_range");
@@ -812,7 +816,7 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
   param->odom_a1 = bot_param_get_double_or_fail(b_param,"localizer.odom_a1");
   param->odom_a2 = bot_param_get_double_or_fail(b_param,"localizer.odom_a2");
   param->odom_a3 = bot_param_get_double_or_fail(b_param,"localizer.odom_a3");
-  param->odom_a4 = bot_param_get_double_or_fail(b_param,"localizer.odom_a4");  
+  param->odom_a4 = bot_param_get_double_or_fail(b_param,"localizer.odom_a4");
 #endif
 
   param->occupied_prob = bot_param_get_double_or_fail(b_param,"localizer.occupied_prob");
@@ -824,13 +828,13 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
   param->use_sensor = bot_param_get_boolean_or_fail(b_param,"localizer.use_sensor");
   param->tracking_beam_minlikelihood = bot_param_get_double_or_fail(b_param,"localizer.tracking_beam_minlikelihood");
   param->global_beam_minlikelihood = bot_param_get_double_or_fail(b_param,"localizer.global_beam_minlikelihood");
-  
+
   param->integrate_angle = carmen_degrees_to_radians(integrate_angle_deg);
-  
+
 }
 
 static void multi_gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const ripl_multi_gridmap_t *msg, void *user)
-{  
+{
   //static carmen3d_multi_gridmap_t *static_msg = NULL;
 
   if(mmap_msg != NULL){
@@ -841,11 +845,11 @@ static void multi_gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channe
 
   fprintf(stderr,"Multi-Map recieved Floors: %d\n", mmap_msg->no_floors);
 
-  //add code to free the old maps 
+  //add code to free the old maps
 
 
   //reallocate for the new maps
-  
+
   no_of_floors = mmap_msg->no_floors;
   floor_map = (int *) realloc(floor_map,sizeof(int)*mmap_msg->no_floors);
   global_carmen_mmap = (carmen_map_p *) realloc(global_carmen_mmap, no_of_floors * sizeof(carmen_map_p));
@@ -856,7 +860,7 @@ static void multi_gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channe
   for(int map_id=0;map_id<mmap_msg->no_floors; map_id++){
     mmap[map_id] = (carmen3d_localize_map_p) malloc(sizeof(carmen3d_localize_map_t));
     memset(mmap[map_id], 0, sizeof(carmen3d_localize_map_t));
-    global_carmen3d_mmap[map_id] = (ripl_map_p) malloc(sizeof(ripl_map_t)); 
+    global_carmen3d_mmap[map_id] = (ripl_map_p) malloc(sizeof(ripl_map_t));
     //ripl_map_t sub_map;
     memset(global_carmen3d_mmap[map_id], 0,sizeof(ripl_map_t));
     floor_map[map_id] = mmap_msg->maps[map_id].floor_no;
@@ -867,10 +871,10 @@ static void multi_gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channe
 
     carmen3d_map_uncompress_lcm_map(global_carmen3d_mmap[map_id], &mmap_msg->maps[map_id].gridmap); //maybe here is the alloc
 
-    //do we need to alloc space for this pointer also?? - dont think so 
+    //do we need to alloc space for this pointer also?? - dont think so
     global_carmen_mmap[map_id] = (carmen_map_p) calloc(1, sizeof(carmen_map_t));
     global_carmen_mmap[map_id] = carmen3d_map_map3d_map_copy(global_carmen3d_mmap[map_id]);
-    
+
 
     //if(map_id <2){
     no_valid_floors++;
@@ -888,14 +892,14 @@ static void multi_gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channe
     //}
   }
 
-  //unsubscribe 
+  //unsubscribe
 
   ripl_multi_gridmap_t_unsubscribe(lcm, sub);
   ripl_multi_gridmap_t_unsubscribe(lcm, sub_1);
 }
 
-//this method is not useful anymore as we will be dealing with the multi-floor map messages even if we 
-//only travel a single floor 
+//this method is not useful anymore as we will be dealing with the multi-floor map messages even if we
+//only travel a single floor
 /*
 static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const ripl_gridmap_t *msg, void *user)
 {
@@ -915,12 +919,12 @@ static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, con
   }
 
   global_carmen_map = carmen3d_map_map3d_map_copy(global_carmen3d_map);
-  
-  // create a localize map 
+
+  // create a localize map
   carmen_warn("Creating likelihood maps... ");
   carmen3d_to_localize_map(global_carmen_map, &map, &param);
   fprintf(stderr,"Done\n");
-  //this just coppies the message - doesnt do anything else with it - need to actually have the localize listen to and switch maps 
+  //this just coppies the message - doesnt do anything else with it - need to actually have the localize listen to and switch maps
   //on the fly
 }
 */
@@ -933,7 +937,7 @@ void create_localize_mmap()
   msg.requesting_prog = "LOCALIZE_MULTI";
 
   ripl_map_request_msg_t_publish(lcm,"MMAP_REQUEST_CHANNEL",&msg);
-  
+
   carmen_warn("Waiting for a map");
   while (mmap_msg == NULL) {
     common_sleep(lcm, .25);
@@ -969,14 +973,14 @@ void create_localize_mmap()
   carmen3d_map_uncompress_lcm_map(global_carmen3d_map, global_map_msg);
   global_carmen_map = carmen3d_map_map3d_map_copy(global_carmen3d_map);
 
-  // create a localize map 
+  // create a localize map
   carmen_warn("Creating likelihood maps... ");
   carmen3d_to_localize_map(global_carmen_map, map, param);
 
   carmen_warn("done.\n");
   }*/
 
-void tagging_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)), 
+void tagging_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)),
 		    const ripl_tagged_node_t * msg,
 		    void * user  __attribute__((unused)))
 {
@@ -1001,9 +1005,9 @@ void shutdown_localize(int x)
 
 int main(int argc, char **argv)
 {  /* initialize carmen */
-  
+
   //****** remove the ipc stuff
-  
+
   carmen_randomize(&argc, &argv);
   fprintf(stderr,"Done\n");
   //carmen_ipc_initialize(argc, argv);
@@ -1016,7 +1020,7 @@ int main(int argc, char **argv)
 
   BotParam * b_param = bot_param_new_from_server(lcm, 1);
 
- 
+
   /*--------------Multi floor maps------------*/
   global_carmen_mmap = NULL;//(carmen_map_p) calloc(1, sizeof(carmen_map_t));
   //carmen_test_alloc(global_carmen_map);
@@ -1038,7 +1042,7 @@ int main(int argc, char **argv)
 
   ripl_localize_reinitialize_cmd_t_subscribe(lcm, LOCALIZE_REINITIALIZE_CHANNEL,
 						 lcm_localize_reinitialize_handler, NULL);
-  
+
   sub = ripl_multi_gridmap_t_subscribe(lcm, "MMAP_SERVER", multi_gridmap_handler, NULL);
   sub_1 = ripl_multi_gridmap_t_subscribe(lcm, "FINAL_MULTI_SLAM", multi_gridmap_handler, NULL);
   /* get a map */
@@ -1074,7 +1078,7 @@ int main(int argc, char **argv)
   carmen_point_t std = { .1, .1, .1 };
   initialize_msg.mean = &mean_map;
   initialize_msg.std = &std;
- 
+
   ripl_floor_change_msg_t_subscribe(lcm, "FLOOR_STAUS", floor_change_handler, NULL);
   ripl_robot_laser_t_subscribe(lcm, ROBOT_LASER_CHANNEL, lcm_robot_laser_handler, NULL); //(void*)this);
   //carmen_localize_initialize_handler(&initialize_msg);

@@ -26,30 +26,36 @@
  *
  ********************************************************/
 
-//#include <carmen/carmen.h>
+ #include <GL/gl.h>
+ #include <getopt.h>
+
+
 #include <carmen_utils/carmen.h>
-#include "localize3dcore.h"
-#include "localize3d_messages.h"
-#include "localize3d_motion.h"
 
 #include <bot_core/bot_core.h>
 #include <bot_lcmgl_client/lcmgl.h>
-#include <laser_utils/laser_util.h>
-#include <interfaces/map3d_interface.h>
-#include <carmen_utils/carmen3d_global.h>
-#include <common_utils/common_utils.h>
-#include <GL/gl.h>
-#include <getopt.h>
 
 //bot param stuff
 #include <bot_param/param_client.h>
 #include <bot_param/param_util.h>
 #include <bot_frames/bot_frames.h>
 
+#include <laser_utils/laser_util.h>
+#include <interfaces/map3d_interface.h>
+#include <carmen_utils/carmen3d_global.h>
+#include <common_utils/common_utils.h>
+
 #include <lcmtypes/bot2_param.h>
 #include <lcmtypes/map_lcmtypes.h>
 #include <lcmtypes/gridmap_lcmtypes.h>
 #include <lcmtypes/ripl_localize_reinitialize_cmd_t.h>
+
+
+#include "localize3dcore.h"
+#include "localize3d_messages.h"
+#include "localize3d_motion.h"
+
+
 
 #define PUBLISH_GLOBAL_TO_LOCAL_HZ 10
 
