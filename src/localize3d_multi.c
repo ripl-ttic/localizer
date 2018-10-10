@@ -48,7 +48,6 @@
 #include <lcmtypes/bot2_param.h>
 
 #include <lcmtypes/er_lcmtypes.h>
-#include <hr_lcmtypes/lcm_channel_names.h>
 
 #include "localize3dcore.h"
 #include "localize3d_messages.h"
@@ -1040,7 +1039,7 @@ int main(int argc, char **argv)
 
   ripl_tagged_node_t_subscribe(lcm, "WHEELCHAIR_MODE", tagging_handler, NULL);
 
-  ripl_localize_reinitialize_cmd_t_subscribe(lcm, LOCALIZE_REINITIALIZE_CHANNEL,
+  ripl_localize_reinitialize_cmd_t_subscribe(lcm, "LOCALIZE_REINITIALIZE",
 						 lcm_localize_reinitialize_handler, NULL);
 
   sub = ripl_multi_gridmap_t_subscribe(lcm, "MMAP_SERVER", multi_gridmap_handler, NULL);
@@ -1080,7 +1079,7 @@ int main(int argc, char **argv)
   initialize_msg.std = &std;
 
   ripl_floor_change_msg_t_subscribe(lcm, "FLOOR_STAUS", floor_change_handler, NULL);
-  ripl_robot_laser_t_subscribe(lcm, ROBOT_LASER_CHANNEL, lcm_robot_laser_handler, NULL); //(void*)this);
+  ripl_robot_laser_t_subscribe(lcm, "ROBOT_LASER", lcm_robot_laser_handler, NULL); //(void*)this);
   //carmen_localize_initialize_handler(&initialize_msg);
   /*ripl_localize_reinitialize_cmd_t_subscribe(lcm, LOCALIZE_REINITIALIZE_CHANNEL,
     lcm_localize_reinitialize_handler, NULL);*/
