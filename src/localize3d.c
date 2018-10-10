@@ -936,7 +936,7 @@ static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, con
 void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p param, state_t *s)
 {
     /* subscripe to map, and wait for it to come in... */
-    ripl_map_request_msg_t msg;
+    maplcm_map_request_msg_t msg;
     msg.utime =  carmen_get_time()*1e6;
     msg.requesting_prog = "LOCALIZE";
 
@@ -953,7 +953,7 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
     while (s->global_map_msg == NULL) {
         if(!sent_map_req){
             sent_map_req = 1;
-            ripl_map_request_msg_t_publish(s->lcm,"MAP_REQUEST_CHANNEL",&msg);
+            maplcm_map_request_msg_t_publish(s->lcm,"MAP_REQUEST_CHANNEL",&msg);
         }
         common_sleep(s->lcm, .25);
 
@@ -998,7 +998,7 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
 }
 
 void tagging_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)), const char * channel __attribute__((unused)),
-                     const ripl_tagged_node_t * msg,
+                     const maplcm_tagged_node_t * msg,
                      void * user  __attribute__((unused)))
 {
     char* type = msg->type;
@@ -1126,7 +1126,7 @@ int main(int argc, char **argv)
     self->global_carmen3d_map = (ripl_map_p) calloc(1, sizeof(ripl_map_t));
     carmen_test_alloc(self->global_carmen3d_map);
 
-    ripl_tagged_node_t_subscribe(self->lcm, "WHEELCHAIR_MODE", tagging_handler, self);
+    maplcm_tagged_node_t_subscribe(self->lcm, "WHEELCHAIR_MODE", tagging_handler, self);
 
     ripl_localize_reinitialize_cmd_t_subscribe(self->lcm, "LOCALIZE_REINITIALIZE", lcm_localize_reinitialize_handler, self);
 
