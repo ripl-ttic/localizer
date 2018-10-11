@@ -48,7 +48,7 @@
 #include <lcmtypes/bot2_param.h>
 #include <lcmtypes/map_lcmtypes.h>
 #include <lcmtypes/gridmap_lcmtypes.h>
-#include <lcmtypes/ripl_localize_reinitialize_cmd_t.h>
+#include <lcmtypes/localizer_reinitialize_cmd_t.h>
 
 
 #include "localize3dcore.h"
@@ -65,7 +65,7 @@ typedef struct _state_t{
     bot_lcmgl_t * lcmgl_particles;
     bot_lcmgl_t * lcmgl_laser;
     Laser_projector *laser_proj;
-    ripl_gridmap_t* global_map_msg;
+    gmlcm_gridmap_t* global_map_msg;
     carmen_map_p global_carmen_map;
     ripl_map_p global_carmen3d_map;
     double laser_max_range;
@@ -680,7 +680,7 @@ void on_planar_lidar(const lcm_recv_buf_t *rbuf __attribute__((unused)),
 
 void lcm_localize_reinitialize_handler(const lcm_recv_buf_t *rbuf __attribute__((unused)),
                                        const char *channel __attribute__((unused)),
-                                       const ripl_localize_reinitialize_cmd_t *msg,
+                                       const localizer_reinitialize_cmd_t *msg,
                                        void *user)
 {
     state_t *s = (state_t *) user;
@@ -873,15 +873,15 @@ void read_parameters_from_conf(int argc, char **argv, carmen3d_localize_param_p 
 }
 
 
-static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const ripl_gridmap_t *msg, void *user)
+static void gridmap_handler(const lcm_recv_buf_t *rbuf, const char *channel, const gmlcm_gridmap_t *msg, void *user)
 {
     state_t *s = (state_t *) user;
 
     fprintf(stderr,"Gridmap Received\n");
     if (s->global_map_msg != NULL) {
-        ripl_gridmap_t_destroy(s->global_map_msg);
+        gmlcm_gridmap_t_destroy(s->global_map_msg);
     }
-    s->global_map_msg = ripl_gridmap_t_copy(msg);
+    s->global_map_msg = gmlcm_gridmap_t_copy(msg);
 
     fprintf(stderr,"New map recieved\n");
 
@@ -942,10 +942,10 @@ void create_localize_map(carmen3d_localize_map_t *map, carmen3d_localize_param_p
 
 
 
-    ripl_gridmap_t_subscription_t * sub = ripl_gridmap_t_subscribe(s->lcm, "MAP_SERVER", gridmap_handler,
+    gmlcm_gridmap_t_subscription_t * sub = gmlcm_gridmap_t_subscribe(s->lcm, "MAP_SERVER", gridmap_handler,
                                                                      s);
 
-    ripl_gridmap_t_subscription_t * sub_1 = ripl_gridmap_t_subscribe(s->lcm, "FINAL_SLAM", gridmap_handler,
+    gmlcm_gridmap_t_subscription_t * sub_1 = gmlcm_gridmap_t_subscribe(s->lcm, "FINAL_SLAM", gridmap_handler,
                                                                        s);
     fprintf(stderr,"Waiting for a map");
     int sent_map_req = 0;
@@ -1128,7 +1128,7 @@ int main(int argc, char **argv)
 
     maplcm_tagged_node_t_subscribe(self->lcm, "WHEELCHAIR_MODE", tagging_handler, self);
 
-    ripl_localize_reinitialize_cmd_t_subscribe(self->lcm, "LOCALIZE_REINITIALIZE", lcm_localize_reinitialize_handler, self);
+    localizer_reinitialize_cmd_t_subscribe(self->lcm, "LOCALIZE_REINITIALIZE", lcm_localize_reinitialize_handler, self);
 
 
     /* get a map */

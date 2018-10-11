@@ -1,9 +1,9 @@
-package ripl;
+package localizer;
 
-// Instructs the localization particle filter to re-initialize the
+// Used to instruct the localization particle filter to re-initialize the
 // particles to a normal distribution.
 
-struct localize_reinitialize_cmd_t
+struct reinitialize_cmd_t
 {
     int64_t utime;
 
